@@ -3,10 +3,30 @@ const grid = $("#product-grid"), countEl=$("#count");
 const inputSearch=$("#search"), selectCategory=$("#category"), selectSort=$("#sort");
 
 const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const PLACEHOLDER_IMAGE = "/assets/img/product-placeholder.svg";
 const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
 let cashbackInfo = readCashbackFromStorage();
 let PRODUCTS = [];
+
+function normalizeGallery(...sources){
+  const collected=[];
+  sources.forEach(src=>{
+    if(Array.isArray(src)){
+      collected.push(...src);
+    }else if(src!=null){
+      collected.push(src);
+    }
+  });
+  const unique=[];
+  collected.forEach(value=>{
+    const str=String(value??'').trim();
+    if(str && !unique.includes(str)){
+      unique.push(str);
+    }
+  });
+  return unique;
+}
 
 init().catch(err=>{
   console.error(err);
@@ -94,6 +114,9 @@ function normalizeLocalProduct(p){
   const priceRaw = p.price ?? p.preco ?? p["preço"] ?? 0;
   const oldPriceRaw = p.oldPrice ?? p.precoAntigo ?? p["preçoAntigo"] ?? null;
   const image = p.image ?? p.img ?? p.foto ?? p.imagem ?? "";
+  const gallery = normalizeGallery(image, p.images, p.fotos, p.imagens).slice(0,3);
+  const cover = gallery[0] || image || "";
+  const normalizedImages = gallery.length ? gallery : (cover ? [cover] : []);
   const tags = (p.tags && Array.isArray(p.tags)) ? p.tags.join(",")
               : (typeof p.tags === "string" ? p.tags : "");
 
@@ -105,7 +128,8 @@ function normalizeLocalProduct(p){
 
   return {
     id, name, category, price, oldPrice,
-    image, images: p.images || [],
+    image: cover,
+    images: normalizedImages,
     subtitle: p.subtitle || p.subtitulo || "",
     description: p.description || p.descricao || "",
     tags
@@ -198,11 +222,13 @@ function render(){
 function cardHTML(p){
   const hasOld = p.oldPrice && Number(p.oldPrice) > Number(p.price);
   const priceNow = Number(p.price) || 0;
+  const gallery = normalizeGallery(p.image, Array.isArray(p.images)?p.images:[]).slice(0,3);
+  const cover = escapeHtml(gallery[0] || p.image || PLACEHOLDER_IMAGE);
   const cb = computeCashback(priceNow);
   return `
   <article class="product-card">
     <a class="product-media" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}">
-      <img src="${p.image}" alt="${escapeHtml(p.name)}">
+      <img src="${cover}" alt="${escapeHtml(p.name)}">
       <span class="badge" ${hasOld?"":"hidden"}>- ${hasOld ? Math.round((1 - p.price/p.oldPrice)*100) : 0}%</span>
     </a>
     <div class="product-body">

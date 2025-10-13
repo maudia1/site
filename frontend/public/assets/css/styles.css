@@ -296,7 +296,8 @@ body.iw-modal-open{overflow:hidden}
 .product-frame{background:radial-gradient(60% 60% at 50% 40%,rgba(255,255,255,.08),rgba(255,255,255,.02));border-radius:18px;border:1px solid rgba(255,255,255,.08);padding:24px;min-height:280px;display:flex;align-items:center;justify-content:center}
 .product-frame img{width:100%;max-height:360px;object-fit:contain}
 .product-thumbs{display:flex;gap:10px;flex-wrap:wrap}
-.product-thumbs button{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);border-radius:12px;padding:0;width:82px;height:82px;cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+.product-thumbs button{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);border-radius:12px;padding:0;width:82px;height:82px;cursor:pointer;transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
+.product-thumbs button.is-active,.product-thumbs button[aria-pressed="true"]{border-color:rgba(96,165,250,.7);box-shadow:0 0 0 2px rgba(59,130,246,.35);}
 .product-thumbs button:hover{border-color:rgba(255,255,255,.18);transform:translateY(-1px)}
 .product-thumbs img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .product-info{display:grid;gap:16px;align-content:flex-start}

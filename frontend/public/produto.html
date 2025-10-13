@@ -109,6 +109,25 @@
   const ctaEl = document.getElementById('product-cta');
   const crumb = document.getElementById('crumb-product');
 
+  function normalizeGallery(...sources){
+    const collected=[];
+    sources.forEach(src=>{
+      if(Array.isArray(src)){
+        collected.push(...src);
+      }else if(src!=null){
+        collected.push(src);
+      }
+    });
+    const unique=[];
+    collected.forEach(value=>{
+      const str=String(value??'').trim();
+      if(str && !unique.includes(str)){
+        unique.push(str);
+      }
+    });
+    return unique;
+  }
+
   const pathParts = location.pathname.split('/').filter(Boolean);
   let id = pathParts[0]==='produto' && pathParts[1] ? decodeURIComponent(pathParts.slice(1).join('/')) : '';
   if(!id){
@@ -200,21 +219,38 @@
       metaSection.hidden = true;
     }
 
-    imgEl.src = p.image || '/assets/img/product-placeholder.svg';
+    const gallery = normalizeGallery(p.image, Array.isArray(p.images)?p.images:[]).slice(0,3);
+    const placeholder = '/assets/img/product-placeholder.svg';
+    const primary = gallery[0] || placeholder;
+    imgEl.src = primary;
     imgEl.alt = p.name;
 
-    const images = Array.isArray(p.images) ? p.images : [];
-    const extraImages = images.filter(url=>url && url!==p.image);
-    if(extraImages.length){
-      thumbsEl.innerHTML = extraImages.map(url=>`<button type="button" data-url="${escapeHtml(url)}"><img src="${escapeHtml(url)}" alt="${escapeHtml(p.name)}"></button>`).join('');
+    if(gallery.length > 1){
+      thumbsEl.innerHTML = gallery.map((url,index)=>{
+        const safeUrl = escapeHtml(url);
+        const pressed = index===0 ? 'true' : 'false';
+        return `<button type="button" data-url="${safeUrl}" aria-pressed="${pressed}" class="${index===0?'is-active':''}"><img src="${safeUrl}" alt="${escapeHtml(p.name)}"></button>`;
+      }).join('');
       thumbsEl.hidden = false;
-      thumbsEl.querySelectorAll('button').forEach(btn=>{
+      const buttons = Array.from(thumbsEl.querySelectorAll('button'));
+      const setActive=(active)=>{
+        buttons.forEach(btn=>{
+          const isActive = btn===active;
+          btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          btn.classList.toggle('is-active', isActive);
+        });
+      };
+      setActive(buttons[0]);
+      buttons.forEach(btn=>{
         btn.addEventListener('click',()=>{
-          imgEl.src = btn.dataset.url;
+          const url = btn.dataset.url || primary;
+          imgEl.src = url;
+          setActive(btn);
         });
       });
     }else{
       thumbsEl.hidden = true;
+      thumbsEl.innerHTML = '';
     }
 
     const message = encodeURIComponent(`Ol\u00e1! Tenho interesse no produto ${p.name}`);
