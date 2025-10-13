@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>iWanted — Carrinho</title>
+  <link rel="stylesheet" href="/assets/css/styles.css"/>
+</head>
+<body>
+<header class="iw-header">
+  <div class="iw-container">
+    <a class="brand" href="/" aria-label="iWanted - Início">
+      <img class="brand-logo" src="/assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>
+      <span class="brand-text" aria-hidden="true">iWanted</span>
+    </a>
+    <nav class="nav" aria-label="Navegação principal">
+      <a href="/">Início</a>
+      <a href="/catalogo">Produtos</a>
+      <a href="/#contato">Contato</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="icon-btn" href="/catalogo" aria-label="Buscar" title="Buscar">&#128269;</a>
+      <a class="icon-btn" href="/carrinho" aria-label="Carrinho" title="Carrinho">
+        &#128722;
+        <span class="cart-count" data-cart-count hidden>0</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="cart-page">
+  <div class="iw-container">
+    <header class="cart-page-header">
+      <div>
+        <h1>Seu carrinho</h1>
+        <p class="muted" data-cart-meta>Adicione produtos para começar sua compra.</p>
+      </div>
+      <a class="btn btn-ghost" href="/catalogo">Continuar comprando</a>
+    </header>
+    <div class="cart-page-layout" data-cart-page>
+      <section class="cart-page-list">
+        <p class="cart-empty muted" data-cart-empty>
+          Seu carrinho está vazio. <a href="/catalogo">Ver produtos</a>.
+        </p>
+        <ul class="cart-items" data-cart-items></ul>
+      </section>
+      <aside class="cart-page-summary">
+        <div class="cart-summary-box">
+          <h2>Resumo da compra</h2>
+          <div class="cart-summary-line">
+            <span>Total</span>
+            <span data-cart-total>R$ 0,00</span>
+          </div>
+          <div class="cart-summary-line cart-summary-line--cashback" data-cart-cashback hidden>
+            <div class="cart-summary-text">
+              <span class="label">Com cashback</span>
+              <span class="savings">Você economiza <strong data-cart-cashback-saved></strong></span>
+            </div>
+            <span class="value" data-cart-total-cashback>R$ 0,00</span>
+          </div>
+          <button class="btn btn-primary" type="button" data-cart-checkout disabled>Finalizar compra no WhatsApp</button>
+          <button class="btn btn-ghost" type="button" data-cart-clear hidden>Esvaziar carrinho</button>
+          <p class="cart-summary-note muted">Finalizamos o pedido pelo WhatsApp para garantir o cashback aplicado.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<footer class="iw-footer">
+  <div class="iw-container footer-inner">
+    <div class="foot-left">
+      <div class="foot-brand">
+        <img class="brand-logo brand-logo--small" src="/assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>
+        <span class="brand-text brand-text--footer" aria-hidden="true">iWanted</span>
+      </div>
+      <p class="muted">&copy; <span id="year"></span> iWanted — Autorizada Apple</p>
+    </div>
+    <div class="foot-right">
+      <a href="/catalogo">Catálogo</a>
+      <a href="/#sobre">Sobre</a>
+      <a href="/#contato">Contato</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/js/visitor.js" defer></script>
+<script src="/assets/js/cart.js" defer></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

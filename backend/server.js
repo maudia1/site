@@ -594,6 +594,7 @@ app.post("/api/upload", requireAdmin, upload.single("file"), (req, res) => {
 const sendStaticPage = (file) => (_req, res) => res.sendFile(path.join(publicDir, file));
 
 app.get(["/catalogo", "/catalogo/"], sendStaticPage("catalog.html"));
+app.get(["/carrinho", "/carrinho/"], sendStaticPage("carrinho.html"));
 app.get(["/admin", "/admin/"], requireAdmin, sendStaticPage("admin.html"));
 app.get(["/produto", "/produto/"], sendStaticPage("produto.html"));
 app.get("/produto/:id", sendStaticPage("produto.html"));

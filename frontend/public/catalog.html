@@ -16,6 +16,13 @@
     <a href="/catalogo?q=iphone">iPhone</a><a href="/catalogo?q=usb-c">Cabos</a>
     <a href="/catalogo?q=carregador">Carregadores</a><a href="/catalogo?q=airpods">Fones</a><a href="/catalogo?q=audio">&Aacute;udio</a>
   </nav>
+  <div class="nav-actions">
+    <a class="icon-btn" href="/catalogo" aria-label="Buscar" title="Buscar">&#128269;</a>
+    <a class="icon-btn" href="/carrinho" aria-label="Carrinho" title="Carrinho">
+      &#128722;
+      <span class="cart-count" data-cart-count hidden>0</span>
+    </a>
+  </div>
 </div></header>
 
 <main class="catalog-page">
@@ -51,6 +58,7 @@
 </div></footer>
 
 <script src="assets/js/visitor.js" defer></script>
+<script src="assets/js/cart.js" defer></script>
 <script src="assets/js/app.js" defer></script>
 <script>document.getElementById('year').textContent=new Date().getFullYear()</script>
 </body></html>
