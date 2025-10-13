@@ -74,7 +74,7 @@
 
   function bindGlobalEvents(){
     window.addEventListener(CART_ADD_EVENT, (event)=>{
-      const item = normalizePayload(event?.detail);
+      const item = normalizeCartItem(event?.detail);
       if(!item) return;
       addItem(item);
       showToast(`${item.name} adicionado ao carrinho.`);
@@ -101,11 +101,22 @@
   }
 
   function addItem(item){
-    const existing = cart.find(entry=>entry.id===item.id);
-    if(existing){
-      existing.quantity = clampQuantity(existing.quantity + item.quantity);
+    const normalized = normalizeCartItem(item);
+    if(!normalized) return;
+    const existingIndex = cart.findIndex(entry=>entry.id===normalized.id);
+    if(existingIndex>=0){
+      const existing = cart[existingIndex];
+      const nextQty = clampQuantity((existing.quantity||1) + (normalized.quantity||1));
+      cart[existingIndex] = {
+        id: existing.id,
+        name: normalized.name || existing.name,
+        price: normalized.price,
+        image: normalized.image || existing.image,
+        url: normalized.url || existing.url,
+        quantity: nextQty
+      };
     }else{
-      cart.push(item);
+      cart.push(normalized);
     }
     persistCart();
     render();
@@ -283,23 +294,13 @@
 
   function persistCart(){
     try{
-      const serialized = JSON.stringify(cart.map(sanitizeForStorage));
+      cart = cart.map(normalizeCartItem).filter(Boolean);
+      const serialized = JSON.stringify(cart);
       localStorage.setItem(CART_KEY, serialized);
     }catch(err){
       console.warn('[cart] não foi possível salvar o carrinho', err);
     }
     window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT,{detail:{items:cart.map(cloneItem)}}));
-  }
-
-  function sanitizeForStorage(item){
-    return {
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      image: item.image,
-      url: item.url,
-      quantity: clampQuantity(item.quantity || 1)
-    };
   }
 
   function cloneItem(item){
@@ -313,43 +314,26 @@
       if(!raw) return [];
       const parsed = JSON.parse(raw);
       if(!Array.isArray(parsed)) return [];
-      return parsed.map(normalizeStoredItem).filter(Boolean);
+      return parsed.map(normalizeCartItem).filter(Boolean);
     }catch(err){
       console.warn('[cart] carrinho inválido no storage', err);
       return [];
     }
   }
 
-  function normalizeStoredItem(entry){
+  function normalizeCartItem(entry){
     if(!entry) return null;
-    const id = String(entry.id||'').trim();
-    const name = String(entry.name||'').trim();
-    const price = Number(entry.price);
-    const quantity = clampQuantity(entry.quantity||1) || 1;
+    const id = String(entry.id ?? '').trim();
+    const name = String(entry.name ?? '').trim();
+    const price = parsePrice(entry.price);
     if(!id || !name || !Number.isFinite(price)) return null;
+    const quantity = clampQuantity(entry.quantity ?? 1) || 1;
     return {
       id,
       name,
       price,
       image: entry.image ? String(entry.image) : '',
       url: entry.url ? String(entry.url) : '',
-      quantity
-    };
-  }
-
-  function normalizePayload(detail){
-    if(!detail) return null;
-    const id = String(detail.id||'').trim();
-    const name = String(detail.name||'').trim();
-    const price = Number(detail.price);
-    if(!id || !name || !Number.isFinite(price)) return null;
-    const quantity = clampQuantity(detail.quantity||1) || 1;
-    return {
-      id,
-      name,
-      price,
-      image: detail.image ? String(detail.image) : '',
-      url: detail.url ? String(detail.url) : '',
       quantity
     };
   }
@@ -389,6 +373,43 @@
 
   function formatBRL(value){
     return Number(value||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  }
+
+  function parsePrice(value){
+    if(typeof value === 'number'){
+      return Number.isFinite(value) ? value : NaN;
+    }
+    const str = String(value ?? '').trim();
+    if(!str) return NaN;
+    const isNeg = /^-/.test(str);
+    const cleaned = str.replace(/[^0-9.,-]/g,'').replace(/^-/, '');
+    if(!/[0-9]/.test(cleaned)) return NaN;
+    const hasComma = cleaned.includes(',');
+    const hasDot = cleaned.includes('.');
+    let sep = null;
+    if(hasComma && hasDot){
+      sep = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.') ? ',' : '.';
+    }else if(hasComma){
+      sep = ',';
+    }else if(hasDot){
+      const last = cleaned.lastIndexOf('.');
+      const fracLen = cleaned.length - last - 1;
+      if(fracLen > 0 && fracLen <= 2){
+        sep = '.';
+      }
+    }
+    let intPart = cleaned;
+    let fracPart = '';
+    if(sep){
+      const idx = cleaned.lastIndexOf(sep);
+      intPart = cleaned.slice(0, idx);
+      fracPart = cleaned.slice(idx + 1);
+    }
+    intPart = intPart.replace(/[.,]/g,'');
+    fracPart = fracPart.replace(/[.,]/g,'');
+    const normalized = `${isNeg ? '-' : ''}${intPart || '0'}${fracPart ? '.' + fracPart : ''}`;
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : NaN;
   }
 
   function escapeHtml(str){
