@@ -1,0 +1,37 @@
+# ── Node / package managers ────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Variáveis de ambiente (mantenha só um exemplo) ─────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── SQLite (não versione DB nem arquivos de WAL/SHM) ───────────────────────
+backend/data/**/*.sqlite
+backend/data/**/*.sqlite3
+backend/data/**/*-wal
+backend/data/**/*-shm
+backend/data/**/*.db
+backend/data/**/*-journal
+
+# ── Arquivos gerados em runtime ────────────────────────────────────────────
+backend/data/uploads/
+backend/data/cache/
+tmp/
+logs/
+*.log
+*.pid
+
+# ── Build/coverage ─────────────────────────────────────────────────────────
+dist/
+build/
+coverage/
+
+# ── Sistema/Editor ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/

@@ -1,0 +1,236 @@
+﻿<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>iWanted &mdash; Produto</title>
+  <link rel="stylesheet" href="/assets/css/styles.css"/>
+</head>
+<body>
+<header class="iw-header">
+  <div class="iw-container">
+    <a class="brand" href="/" aria-label="iWanted - In&iacute;cio">
+      <img class="brand-logo" src="/assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>
+      <span class="brand-text" aria-hidden="true">iWanted</span>
+    </a>
+    <nav class="nav" aria-label="Navega&ccedil;&atilde;o principal">
+      <a href="/">In&iacute;cio</a>
+      <a href="/catalogo">Produtos</a>
+      <a href="/#contato">Contato</a>
+    </nav>
+  </div>
+</header>
+
+<main class="product-page">
+  <div class="iw-container">
+    <nav class="breadcrumb" aria-label="Caminho">
+      <a href="/">Home</a>
+      <span aria-hidden="true">/</span>
+      <a href="/catalogo">Cat&aacute;logo</a>
+      <span aria-hidden="true">/</span>
+      <span id="crumb-product">Produto</span>
+    </nav>
+
+    <section id="product-content" class="product-layout" hidden>
+      <div class="product-gallery">
+        <div class="product-frame">
+          <img id="product-image" alt="" loading="lazy"/>
+        </div>
+        <div id="product-thumbs" class="product-thumbs" hidden></div>
+      </div>
+      <article class="product-info">
+        <span id="product-category" class="product-chip" hidden></span>
+        <h1 id="product-name">Produto</h1>
+        <p id="product-subtitle" class="product-subtitle" hidden></p>
+        <div class="product-price-box">
+          <span id="product-price" class="price-now">R$ 0,00</span>
+          <span id="product-oldprice" class="price-old" hidden></span>
+        </div>
+        <p id="product-description-short" class="product-summary muted" hidden></p>
+        <div id="product-tags" class="product-tags" hidden></div>
+        <div class="product-actions">
+          <a id="product-cta" class="btn btn-primary" href="#" target="_blank" rel="noopener">Comprar agora</a>
+          <a class="btn btn-ghost" href="/catalogo">Voltar ao cat&aacute;logo</a>
+        </div>
+      </article>
+    </section>
+
+    <section id="product-details" class="product-details" hidden>
+      <div>
+        <h2>Descri&ccedil;&atilde;o</h2>
+        <div id="product-description" class="product-description muted"></div>
+      </div>
+      <aside id="product-meta" class="product-meta" hidden>
+        <h3>Detalhes</h3>
+        <dl></dl>
+      </aside>
+    </section>
+
+    <div id="product-status" class="product-status muted"></div>
+  </div>
+</main>
+
+<footer class="iw-footer">
+  <div class="iw-container footer-inner">
+    <div class="foot-left">
+      <div class="foot-brand">
+        <img class="brand-logo brand-logo--small" src="/assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>
+        <span class="brand-text brand-text--footer" aria-hidden="true">iWanted</span>
+      </div>
+      <p class="muted">&copy; <span id="year"></span> iWanted &mdash; Autorizada Apple</p>
+    </div>
+    <div class="foot-right">
+      <a href="/catalogo">Cat&aacute;logo</a>
+      <a href="/#sobre">Sobre</a>
+      <a href="/#contato">Contato</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  const fmt = (n)=> Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const statusEl = document.getElementById('product-status');
+  const layout = document.getElementById('product-content');
+  const details = document.getElementById('product-details');
+  const descriptionEl = document.getElementById('product-description');
+  const descriptionShort = document.getElementById('product-description-short');
+  const nameEl = document.getElementById('product-name');
+  const subtitleEl = document.getElementById('product-subtitle');
+  const priceEl = document.getElementById('product-price');
+  const oldPriceEl = document.getElementById('product-oldprice');
+  const categoryEl = document.getElementById('product-category');
+  const tagsEl = document.getElementById('product-tags');
+  const metaEl = document.querySelector('#product-meta dl');
+  const metaSection = document.getElementById('product-meta');
+  const imgEl = document.getElementById('product-image');
+  const thumbsEl = document.getElementById('product-thumbs');
+  const ctaEl = document.getElementById('product-cta');
+  const crumb = document.getElementById('crumb-product');
+
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  let id = pathParts[0]==='produto' && pathParts[1] ? decodeURIComponent(pathParts.slice(1).join('/')) : '';
+  if(!id){
+    id = new URLSearchParams(location.search).get('id') || '';
+  }
+
+  if(!id){
+    statusEl.textContent = 'Produto n\u00e3o encontrado.';
+  }else{
+    loadProduct(id).catch(err=>{
+      console.error(err);
+      statusEl.textContent = 'N\u00e3o foi poss\u00edvel carregar o produto.';
+    });
+  }
+
+  async function loadProduct(productId){
+    statusEl.textContent = 'Carregando produto...';
+    const res = await fetch(`/api/products/${encodeURIComponent(productId)}`);
+    if(!res.ok){
+      statusEl.innerHTML = 'Produto n\u00e3o encontrado. <a href="/catalogo">Voltar ao cat&aacute;logo</a>';
+      return;
+    }
+    const product = await res.json();
+    render(product);
+  }
+
+  function render(p){
+    statusEl.textContent = '';
+    layout.hidden = false;
+    details.hidden = false;
+
+    document.title = `iWanted &mdash; ${p.name}`;
+    crumb.textContent = p.name;
+
+    nameEl.textContent = p.name;
+    if(p.subtitle){
+      subtitleEl.textContent = p.subtitle;
+      subtitleEl.hidden = false;
+    }else{
+      subtitleEl.hidden = true;
+    }
+
+    priceEl.textContent = fmt(p.price);
+    if(p.oldPrice && Number(p.oldPrice) > Number(p.price)){
+      oldPriceEl.textContent = fmt(p.oldPrice);
+      oldPriceEl.hidden = false;
+    }else{
+      oldPriceEl.hidden = true;
+    }
+
+    const desc = (p.description || '').trim();
+    if(desc){
+      const paragraphs = desc.split(/\n{2,}/).map(block=>`<p>${escapeHtml(block).replace(/\n/g,'<br>')}</p>`).join('');
+      descriptionEl.innerHTML = paragraphs;
+      descriptionShort.textContent = desc.split(/\n/)[0];
+      descriptionEl.classList.remove('empty');
+      descriptionShort.hidden = false;
+    }else{
+      descriptionEl.textContent = 'Produto sem descri\u00e7\u00e3o detalhada.';
+      descriptionEl.classList.add('empty');
+      descriptionShort.hidden = true;
+    }
+
+    if(p.category){
+      categoryEl.textContent = p.category;
+      categoryEl.hidden = false;
+    }else{
+      categoryEl.hidden = true;
+    }
+
+    const tags = Array.isArray(p.tags) ? p.tags : String(p.tags || '').split(',');
+    const normalizedTags = tags.map(t=>t.trim()).filter(Boolean);
+    if(normalizedTags.length){
+      tagsEl.innerHTML = normalizedTags.map(t=>`<span>${escapeHtml(t)}</span>`).join('');
+      tagsEl.hidden = false;
+    }else{
+      tagsEl.hidden = true;
+    }
+
+    const meta = [];
+    if(p.category) meta.push(['Categoria', p.category]);
+    if(normalizedTags.length){
+      meta.push(['Tags', normalizedTags.join(', ')]);
+    }
+    if(meta.length){
+      metaEl.innerHTML = meta.map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('');
+      metaSection.hidden = false;
+    }else{
+      metaSection.hidden = true;
+    }
+
+    imgEl.src = p.image || '/assets/img/product-placeholder.svg';
+    imgEl.alt = p.name;
+
+    const images = Array.isArray(p.images) ? p.images : [];
+    const extraImages = images.filter(url=>url && url!==p.image);
+    if(extraImages.length){
+      thumbsEl.innerHTML = extraImages.map(url=>`<button type="button" data-url="${escapeHtml(url)}"><img src="${escapeHtml(url)}" alt="${escapeHtml(p.name)}"></button>`).join('');
+      thumbsEl.hidden = false;
+      thumbsEl.querySelectorAll('button').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          imgEl.src = btn.dataset.url;
+        });
+      });
+    }else{
+      thumbsEl.hidden = true;
+    }
+
+    const message = encodeURIComponent(`Ol\u00e1! Tenho interesse no produto ${p.name}`);
+    ctaEl.href = `https://wa.me/5500000000000?text=${message}`;
+  }
+
+  function escapeHtml(str){
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return String(str).replace(/[&<>"']/g, m => map[m]);
+  }
+</script>
+</body>
+</html>

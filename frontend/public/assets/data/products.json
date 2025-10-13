@@ -1,0 +1,63 @@
+[
+  {
+    "id": "iw-001",
+    "name": "Capa Silicone iPhone 15 (MagSafe)",
+    "description": "Acabamento aveludado por fora, microfibra por dentro. Compatível com MagSafe.",
+    "category": "Capas",
+    "price": 249.9,
+    "tags": ["iPhone 15", "MagSafe", "Original"],
+    "image": "https://via.placeholder.com/800x600?text=Capa+Silicone+iPhone+15",
+    "buy_url": "#",
+    "more_url": "#"
+  },
+  {
+    "id": "iw-002",
+    "name": "Película de Vidro iPhone 14/15",
+    "description": "Proteção 9H com bordas arredondadas e aplicação sem bolhas.",
+    "category": "Películas",
+    "price": 69.9,
+    "tags": ["9H", "Anti-risco"],
+    "image": "https://via.placeholder.com/800x600?text=Pel%C3%ADcula+de+Vidro",
+    "buy_url": "#"
+  },
+  {
+    "id": "iw-003",
+    "name": "Carregador USB-C 20W",
+    "description": "Carregamento rápido para iPhone e iPad. USB-C PD.",
+    "category": "Carregadores",
+    "price": 179.0,
+    "tags": ["USB-C", "20W", "PD"],
+    "image": "https://via.placeholder.com/800x600?text=Carregador+20W",
+    "buy_url": "#"
+  },
+  {
+    "id": "iw-004",
+    "name": "Cabo USB-C para USB-C (1m)",
+    "description": "Transferência e carga estáveis com alta durabilidade.",
+    "category": "Cabos",
+    "price": 119.9,
+    "tags": ["USB-C", "1m"],
+    "image": "https://via.placeholder.com/800x600?text=Cabo+USB-C",
+    "buy_url": "#"
+  },
+  {
+    "id": "iw-005",
+    "name": "Carregador MagSafe",
+    "description": "Acoplamento magnético e carregamento eficiente para iPhone compatíveis.",
+    "category": "Carregadores",
+    "price": 449.0,
+    "tags": ["MagSafe"],
+    "image": "https://via.placeholder.com/800x600?text=MagSafe",
+    "buy_url": "#"
+  },
+  {
+    "id": "iw-006",
+    "name": "Pulseira Esportiva Apple Watch (41/45mm)",
+    "description": "Material leve e confortável, várias cores.",
+    "category": "Apple Watch",
+    "price": 199.9,
+    "tags": ["Watch", "Esportiva"],
+    "image": "https://via.placeholder.com/800x600?text=Pulseira+Watch",
+    "buy_url": "#"
+  }
+]

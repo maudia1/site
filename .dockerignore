@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log*
+
+# Ignora banco local e uploads
+backend/data/**/*.sqlite*
+backend/data/**/*-wal
+backend/data/**/*-shm
+backend/data/**/*.db
+backend/data/**/*-journal
+backend/data/uploads/**

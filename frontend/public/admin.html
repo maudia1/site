@@ -1,0 +1,719 @@
+<!doctype html><html lang="pt-br"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>iWanted — Admin</title>
+<link rel="stylesheet" href="assets/css/styles.css"/>
+<style>
+  .admin-wrap{padding:24px 0}
+  .admin-grid{display:grid;grid-template-columns:1fr;gap:18px}
+  @media(min-width:980px){.admin-grid{grid-template-columns:1fr 1.1fr}}
+  .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #product-form{display:grid;gap:16px}
+  .form-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .form-header h2{margin:0}
+  .form-header p{margin:6px 0 0}
+  .stack{display:grid;gap:6px}
+  .stack label{font-size:.9rem;color:rgba(255,255,255,.7)}
+  input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff}
+  textarea{min-height:96px}
+  .actions{display:flex;justify-content:flex-end}
+  details.advanced{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;background:rgba(255,255,255,.02)}
+  details.advanced summary{cursor:pointer;font-weight:600}
+  details.advanced[open]{background:rgba(255,255,255,.04)}
+  details.advanced .row{margin-top:12px}
+  @media(max-width:640px){.row{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse}
+  th,td{border-top:1px solid rgba(255,255,255,.08);padding:10px;text-align:left}
+  .right{text-align:right}
+  .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .muted.small{font-size:.9rem}
+  pre.log{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);padding:10px;border-radius:10px;max-height:200px;overflow:auto}
+  .promo-form{display:grid;gap:14px;margin-top:14px}
+  .promo-grid{display:grid;gap:12px}
+  @media(min-width:560px){.promo-grid{grid-template-columns:repeat(3,1fr)}}
+  .promo-item{display:grid;gap:6px}
+  .promo-item label{font-size:.85rem;color:rgba(255,255,255,.7)}
+  .promo-preview{margin-top:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+  .promo-preview ul{margin:0;padding-left:20px;display:grid;gap:6px}
+  .promo-preview li{font-size:.92rem}
+  .promo-actions{display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:6px}
+  .promo-status{font-size:.9rem;color:rgba(255,255,255,.7)}
+</style>
+</head><body>
+<header class="iw-header"><div class="iw-container">
+  <a class="brand" href="/" aria-label="iWanted - In&iacute;cio">`r`n  <img class="brand-logo" src="assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>`r`n  <span class="brand-text" aria-hidden="true">iWanted</span>`r`n</a>
+  <nav class="nav"><a href="/catalogo">Catálogo</a></nav>
+</div></header>
+
+<main class="admin-wrap">
+  <div class="iw-container admin-grid">
+
+    <!-- === Bloco de Sincronização Local -> Servidor === -->
+    <section class="card" id="sync-card">
+      <div class="toolbar">
+        <h2>Sincronizar</h2>
+        <div>
+          <button class="btn" id="scanLocal">Ler produtos do navegador</button>
+          <button class="btn btn-primary" id="syncServer" disabled>Enviar para o servidor</button>
+        </div>
+      </div>
+      <p class="muted small">
+        Use quando seus produtos estiverem <strong>salvos no navegador</strong> (localStorage) e você quiser
+        copiá-los para o <strong>servidor</strong> (API / SQLite). O sistema tenta casar por <em>nome</em> (PUT se existir; senão POST).
+      </p>
+      <div id="sync-summary" class="muted small">Nenhum produto local encontrado.</div>
+      <pre class="log" id="sync-log"></pre>
+      <div id="server-summary" class="muted small" style="margin-top:12px">Carregando produtos do servidor…</div>
+      <pre class="log" id="server-log"></pre>
+    </section>
+
+    <section class="card" id="promo-card">
+      <h2>Promoções da semana</h2>
+      <p class="muted small">Selecione até três produtos para aparecerem na vitrine inicial do site.</p>
+      <form id="promo-form" class="promo-form">
+        <div class="promo-grid">
+          <div class="promo-item">
+            <label for="promo-slot-1">Posição 1</label>
+            <select id="promo-slot-1" data-promo-slot="1"></select>
+          </div>
+          <div class="promo-item">
+            <label for="promo-slot-2">Posição 2</label>
+            <select id="promo-slot-2" data-promo-slot="2"></select>
+          </div>
+          <div class="promo-item">
+            <label for="promo-slot-3">Posição 3</label>
+            <select id="promo-slot-3" data-promo-slot="3"></select>
+          </div>
+        </div>
+        <div class="promo-preview" id="promo-preview" aria-live="polite"></div>
+        <div class="promo-actions">
+          <span id="promo-msg" class="promo-status"></span>
+          <button type="submit" class="btn btn-primary" id="promo-save">Salvar promoções</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" id="home-card">
+      <h2>Produtos da Home</h2>
+      <p class="muted small">Escolha até seis produtos para aparecerem na seção "Mais produtos" da página inicial.</p>
+      <form id="home-form" class="promo-form">
+        <div class="promo-grid">
+          <div class="promo-item"><label for="home-slot-1">Posição 1</label><select id="home-slot-1" data-home-slot="1"></select></div>
+          <div class="promo-item"><label for="home-slot-2">Posição 2</label><select id="home-slot-2" data-home-slot="2"></select></div>
+          <div class="promo-item"><label for="home-slot-3">Posição 3</label><select id="home-slot-3" data-home-slot="3"></select></div>
+          <div class="promo-item"><label for="home-slot-4">Posição 4</label><select id="home-slot-4" data-home-slot="4"></select></div>
+          <div class="promo-item"><label for="home-slot-5">Posição 5</label><select id="home-slot-5" data-home-slot="5"></select></div>
+          <div class="promo-item"><label for="home-slot-6">Posição 6</label><select id="home-slot-6" data-home-slot="6"></select></div>
+        </div>
+        <div class="promo-preview" id="home-preview" aria-live="polite"></div>
+        <div class="promo-actions">
+          <span id="home-msg" class="promo-status"></span>
+          <button type="submit" class="btn btn-primary" id="home-save">Salvar lista da home</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- === Formulário CRUD simples === -->
+    <section class="card">
+      <form id="product-form" novalidate>
+        <div class="form-header">
+          <div>
+            <h2 id="form-title">Cadastrar produto</h2>
+            <p class="muted small">Preencha só o necessário: nome, categoria, preço, imagem e descrição.</p>
+          </div>
+          <button type="button" class="btn btn-ghost" id="clear">Limpar</button>
+        </div>
+
+        <div class="row">
+          <div class="stack"><label for="name">Nome</label><input id="name" autocomplete="off" required/></div>
+          <div class="stack"><label for="category">Categoria</label>
+            <select id="category" required>
+              <option value="">Selecione</option>
+              <option value="Fones">Fones</option>
+              <option value="Capas">Capas</option>
+              <option value="Carregadores">Carregadores</option>
+              <option value="Áudio">Áudio</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="stack"><label>Preço atual (R$)</label><input id="price" type="number" step="0.01" placeholder="299,90"/></div>
+          <div class="stack"><label>Preço anterior (opcional)</label><input id="oldPrice" type="number" step="0.01" placeholder="349,90"/></div>
+        </div>
+
+        <div class="stack">
+          <label>Descrição</label>
+          <textarea id="description" placeholder="Fale sobre o produto, principais destaques etc."></textarea>
+        </div>
+
+        <details class="advanced">
+          <summary>Campos avançados</summary>
+          <div class="row">
+            <div class="stack"><label>Tags (separe por vírgula)</label><input id="tags" placeholder="magsafe, silicone"/></div>
+            <div class="stack"><label>Imagem capa (URL)</label><input id="image" placeholder="/uploads/arquivo.png"/></div>
+          </div>
+        </details>
+
+        <div class="stack">
+          <label>Upload de imagem</label>
+          <input id="file" type="file" accept="image/*"/>
+          <small class="muted">Ao enviar, o campo de URL é preenchido automaticamente.</small>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="save">Cadastrar produto</button>
+        </div>
+        <div id="msg" class="muted" style="margin-top:8px"></div>
+      </form>
+    </section>
+
+    <!-- === Lista === -->
+    <section class="card">
+      <div class="toolbar">
+        <h2>Produtos</h2>
+        <input id="flt" placeholder="Buscar por nome, categoria ou tag" />
+      </div>
+      <table id="tbl"><thead><tr>
+        <th>Nome</th><th>Categoria</th><th class="right">Preço</th><th>Ações</th>
+      </tr></thead><tbody></tbody></table>
+    </section>
+  </div>
+</main>
+
+<script>
+const $=(s,c=document)=>c.querySelector(s);
+const fmt=(n)=>Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const maybeFmt=(n)=>Number.isFinite(Number(n))?fmt(Number(n)):"—";
+const FIXED_CATEGORIES=["Fones","Capas","Carregadores","Áudio"];
+
+function normalizeCategoryValue(value){
+  if(!value) return "";
+  const str=String(value);
+  const match=FIXED_CATEGORIES.find(cat=>cat.toLowerCase()===str.toLowerCase());
+  return match || str;
+}
+
+function renderCategoryOptions(selected=""){
+  const normalized=normalizeCategoryValue(selected);
+  const select=$("#category");
+  if(!select) return;
+  const opts=['<option value="">Selecione</option>'];
+  FIXED_CATEGORIES.forEach(cat=>{
+    opts.push(`<option value="${esc(cat)}">${esc(cat)}</option>`);
+  });
+  if(normalized && !FIXED_CATEGORIES.includes(normalized)){
+    opts.push(`<option value="${esc(normalized)}">${esc(normalized)} (cat. antiga)</option>`);
+  }
+  const prev=select.value;
+  select.innerHTML=opts.join('');
+  if(normalized){
+    select.value=normalized;
+  }else if(FIXED_CATEGORIES.includes(prev)){
+    select.value=prev;
+  }else{
+    select.value="";
+  }
+}
+
+const promoState={
+  slots:{1:null,2:null,3:null},
+  options:[]
+};
+
+function promoSelectElements(){
+  return Array.from(document.querySelectorAll('select[data-promo-slot]'));
+}
+
+function renderPromoSelects(){
+  const selects=promoSelectElements();
+  if(!selects.length) return;
+  const baseOption=['<option value="">— Nenhum —</option>'];
+  const sorted=[...(promoState.options||[])].sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));
+  sorted.forEach(p=>{
+    baseOption.push(`<option value="${esc(p.id)}">${esc(p.name)} — ${fmt(p.price)}</option>`);
+  });
+  const optionsHtml=baseOption.join('');
+  selects.forEach(select=>{
+    const slot=Number(select.dataset.promoSlot);
+    const desired=promoState.slots[slot]||"";
+    select.innerHTML=optionsHtml;
+    select.value=desired;
+    if(select.value!==desired){
+      select.value="";
+    }
+  });
+  updatePromoPreview();
+}
+
+function refreshPromoOptions(){
+  promoState.options=Array.isArray(window._serverProducts)?window._serverProducts:[];
+  renderPromoSelects();
+}
+
+async function loadFeaturedSlots(){
+  try{
+    const res=await fetch('/api/featured');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const slots=await res.json();
+    promoState.slots={1:null,2:null,3:null};
+    if(Array.isArray(slots)){
+      slots.forEach(item=>{
+        if(item && Number.isInteger(item.slot)){
+          promoState.slots[item.slot]=item.productId||null;
+        }
+      });
+    }
+  }catch{
+    const msg=$("#promo-msg");
+    if(msg) msg.textContent='Não foi possível carregar as promoções.';
+  }
+  renderPromoSelects();
+}
+
+/* ====== HOME (lista curada) ====== */
+const homeState={ slots:{1:null,2:null,3:null,4:null,5:null,6:null}, options:[] };
+function homeSelectElements(){ return Array.from(document.querySelectorAll('select[data-home-slot]')); }
+function renderHomeSelects(){
+  const selects=homeSelectElements(); if(!selects.length) return;
+  const base=['<option value="">— Nenhum —</option>'];
+  const sorted=[...(homeState.options||[])].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  sorted.forEach(p=>base.push(`<option value="${esc(p.id)}">${esc(p.name)} — ${fmt(p.price)}</option>`));
+  const html=base.join('');
+  selects.forEach(sel=>{ const slot=Number(sel.dataset.homeSlot); const desired=homeState.slots[slot]||""; sel.innerHTML=html; sel.value=desired; if(sel.value!==desired){ sel.value=""; } });
+  updateHomePreview();
+}
+function refreshHomeOptions(){ homeState.options=Array.isArray(window._serverProducts)?window._serverProducts:[]; renderHomeSelects(); }
+async function loadHomeSlots(){
+  try{
+    const res=await fetch('/api/home');
+    const slots=await res.json();
+    homeState.slots={1:null,2:null,3:null,4:null,5:null,6:null};
+    if(Array.isArray(slots)) slots.forEach(it=>{ if(it&&Number.isInteger(it.slot)) homeState.slots[it.slot]=it.productId||null; });
+  }catch{}
+  renderHomeSelects();
+}
+function updateHomePreview(){
+  const wrap=$("#home-preview"); if(!wrap) return;
+  const items=[1,2,3,4,5,6].map(slot=>{ const id=homeState.slots[slot]; return (homeState.options||[]).find(p=>p.id===id); }).filter(Boolean);
+  wrap.innerHTML = items.length ? `<ul>${items.map(p=>`<li>${esc(p.name)} — ${fmt(p.price)}</li>`).join('')}</ul>` : '<p class="muted">Nenhum produto selecionado.</p>';
+}
+homeSelectElements().forEach(select=>{
+  select.addEventListener('change',()=>{
+    const slot=Number(select.dataset.homeSlot);
+    homeState.slots[slot]=select.value||null;
+    updateHomePreview();
+  });
+});
+$("#home-form")?.addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  const ids=[1,2,3,4,5,6].map(slot=>homeState.slots[slot]||null);
+  const msg=$("#home-msg"); const btn=$("#home-save");
+  const used=ids.filter(Boolean);
+  const duplicates=used.filter((id,idx)=>used.indexOf(id)!==idx);
+  if(duplicates.length){ if(msg) msg.textContent='Selecione produtos diferentes em cada posição.'; return; }
+  if(btn) btn.disabled=true; if(msg) msg.textContent='Salvando...';
+  try{
+    const res=await fetch('/api/home',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    if(msg) msg.textContent='Lista da home atualizada!';
+    await loadHomeSlots();
+  }catch{
+    if(msg) msg.textContent='Erro ao salvar a lista.';
+  }finally{ if(btn) btn.disabled=false; }
+});
+
+function updatePromoPreview(){
+  const wrap=$("#promo-preview");
+  if(!wrap) return;
+  const selected=[1,2,3].map(slot=>{
+    const id=promoState.slots[slot];
+    return promoState.options.find(p=>p.id===id);
+  }).filter(Boolean);
+  if(!selected.length){
+    wrap.innerHTML='<p class="muted small">Nenhum produto selecionado no momento.</p>';
+    return;
+  }
+  wrap.innerHTML='<ul>'+selected.map(p=>`<li><strong>${esc(p.name)}</strong> — ${fmt(p.price)}</li>`).join('')+'</ul>';
+}
+
+promoSelectElements().forEach(select=>{
+  select.addEventListener('change',()=>{
+    const slot=Number(select.dataset.promoSlot);
+    promoState.slots[slot]=select.value||null;
+    updatePromoPreview();
+  });
+});
+
+$("#promo-form")?.addEventListener('submit',async (ev)=>{
+  ev.preventDefault();
+  await savePromos();
+});
+
+async function savePromos(){
+  const ids=[1,2,3].map(slot=>promoState.slots[slot]||null);
+  const msg=$("#promo-msg");
+  const btn=$("#promo-save");
+  const used=ids.filter(Boolean);
+  const duplicates=used.filter((id,idx)=>used.indexOf(id)!==idx);
+  if(duplicates.length){
+    if(msg) msg.textContent='Selecione produtos diferentes em cada posição.';
+    return;
+  }
+  if(btn) btn.disabled=true;
+  if(msg) msg.textContent='Salvando...';
+  try{
+    const res=await fetch('/api/featured',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    if(msg) msg.textContent='Promoções atualizadas!';
+    await loadFeaturedSlots();
+  }catch(e){
+    if(msg) msg.textContent='Erro ao salvar promoções.';
+  }finally{
+    if(btn) btn.disabled=false;
+  }
+}
+
+async function list(){
+  const r=await fetch("/api/products");
+  const data=await r.json();
+  window._serverProducts = data; // cache para sync
+  const tb=$("#tbl tbody"), q=($("#flt").value||"").toLowerCase();
+  if(tb){
+    tb.innerHTML=data.filter(p=>{
+      return !q || p.name.toLowerCase().includes(q) || (p.category||"").toLowerCase().includes(q) || (p.tags||"").toLowerCase().includes(q);
+    }).map(p=>`
+     <tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td class="right">${fmt(p.price)}</td>
+     <td>
+       <button class="btn" onclick="fill('${p.id}')">Editar</button>
+       <button class="btn" onclick="dup('${p.id}')">Duplicar</button>
+       <button class="btn" onclick="delp('${p.id}')">Excluir</button>
+     </td></tr>`).join("");
+  }
+  refreshPromoOptions();
+  renderServerSnapshot();
+  renderLocalSnapshot();
+  return data;
+}
+$("#flt").addEventListener("input",()=>list());
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function toNumber(v){
+  if(typeof v==="number") return v;
+  const str=String(v??"").trim();
+  if(!str) return NaN;
+  const isNeg=/^-/.test(str);
+  const cleaned=str.replace(/[^0-9.,-]/g,"").replace(/^-/,"");
+  if(!/[0-9]/.test(cleaned)) return NaN;
+  const hasComma=cleaned.includes(",");
+  const hasDot=cleaned.includes(".");
+  let sep=null;
+  if(hasComma && hasDot){
+    sep=cleaned.lastIndexOf(",")>cleaned.lastIndexOf(".")?",":".";
+  }else if(hasComma){
+    sep=",";
+  }else if(hasDot){
+    const last=cleaned.lastIndexOf(".");
+    const fracLen=cleaned.length-last-1;
+    if(fracLen>0 && fracLen<=2){
+      sep=".";
+    }
+  }
+  let intPart=cleaned;
+  let fracPart="";
+  if(sep){
+    const idx=cleaned.lastIndexOf(sep);
+    intPart=cleaned.slice(0,idx);
+    fracPart=cleaned.slice(idx+1);
+  }
+  intPart=intPart.replace(/[.,]/g,"");
+  fracPart=fracPart.replace(/[.,]/g,"");
+  const normalized=`${isNeg?"-":""}${intPart||"0"}${fracPart?"."+fracPart:""}`;
+  const n=Number(normalized);
+  return Number.isFinite(n)?n:NaN;
+}
+function slugify(s){ return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+
+/* Upload */
+async function upload(file){
+  const fd=new FormData(); fd.append("file",file);
+  const r=await fetch("/api/upload",{method:"POST",body:fd});
+  if(!r.ok){$("#msg").textContent="Falha no upload";return}
+  const j=await r.json(); $("#image").value=j.url; $("#msg").textContent="Upload OK: "+j.url;
+  toggleAdvanced(true);
+}
+$("#file").addEventListener("change",(e)=>{ if(e.target.files[0]) upload(e.target.files[0]); });
+
+/* CRUD */
+let editingId=null;
+
+function setMode(id){
+  editingId=id||null;
+  const title=$("#form-title");
+  const btn=$("#save");
+  if(editingId){
+    title.textContent="Editar produto";
+    btn.textContent="Salvar alterações";
+  }else{
+    title.textContent="Cadastrar produto";
+    btn.textContent="Cadastrar produto";
+  }
+}
+
+function clearForm(){
+  $("#product-form").reset();
+  $("#description").value="";
+  $("#tags").value="";
+  $("#image").value="";
+  $("#msg").textContent="";
+  renderCategoryOptions();
+  toggleAdvanced(false);
+  setMode(null);
+}
+
+$("#product-form").addEventListener("submit",(e)=>{e.preventDefault();save();});
+$("#clear").addEventListener("click",()=>{clearForm();});
+clearForm();
+
+function toggleAdvanced(open){
+  const adv=document.querySelector("details.advanced");
+  if(adv) adv.open=open;
+}
+
+async function save(){
+  const priceRaw=$("#price").value;
+  const oldPriceRaw=$("#oldPrice").value;
+  const categorySelected=normalizeCategoryValue($("#category").value);
+  const body={
+    name: $("#name").value.trim(),
+    category: categorySelected,
+    price: toNumber(priceRaw),
+    oldPrice: oldPriceRaw?toNumber(oldPriceRaw):null,
+    tags: $("#tags").value.split(",").map(s=>s.trim()).filter(Boolean),
+    image: $("#image").value.trim(),
+    description: $("#description").value.trim()
+  };
+
+  if(!body.name){ $("#msg").textContent="Informe o nome do produto."; return; }
+  if(!body.category){ $("#msg").textContent="Informe a categoria."; return; }
+  if(!FIXED_CATEGORIES.includes(body.category)){ $("#msg").textContent="Escolha uma das categorias disponíveis (Fones, Capas, Carregadores ou Áudio)."; return; }
+  if(!Number.isFinite(body.price) || body.price<=0){ $("#msg").textContent="Preço inválido."; return; }
+  if(!body.image){ $("#msg").textContent="Envie uma imagem ou preencha a URL."; return; }
+  if(!body.description){ $("#msg").textContent="Descreva o produto."; return; }
+
+  const method = editingId ? "PUT" : "POST";
+  const url = editingId ? `/api/products/${encodeURIComponent(editingId)}` : "/api/products";
+  const r = await fetch(url,{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!r.ok){ $("#msg").textContent="Erro ao salvar"; return; }
+  const j = await r.json();
+  setMode(j.id || editingId);
+  $("#msg").textContent="Salvo com sucesso";
+  await list();
+}
+async function fill(id){
+  const r=await fetch(`/api/products/${encodeURIComponent(id)}`); const p=await r.json();
+  $("#name").value=p.name||"";
+  $("#price").value=p.price ?? ""; $("#oldPrice").value=p.oldPrice ?? "";
+  const tags=Array.isArray(p.tags)?p.tags.join(", "):p.tags||"";
+  $("#tags").value=tags;
+  $("#image").value=p.image||"";
+  $("#description").value=p.description||"";
+  renderCategoryOptions(p.category||"");
+  setMode(p.id);
+  toggleAdvanced(Boolean(tags)||Boolean(p.image));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+async function dup(id){
+  const r=await fetch(`/api/products/${encodeURIComponent(id)}`); const p=await r.json();
+  $("#name").value=(p.name||"")+" (cópia)";
+  renderCategoryOptions(p.category||"");
+  $("#price").value=p.price ?? ""; $("#oldPrice").value=p.oldPrice ?? "";
+  const tags=Array.isArray(p.tags)?p.tags.join(", "):p.tags||"";
+  $("#tags").value=tags; $("#image").value=p.image||"";
+  $("#description").value=p.description||"";
+  setMode(null);
+  toggleAdvanced(Boolean(tags)||Boolean(p.image));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+async function delp(id){
+  if(!confirm("Excluir produto?")) return;
+  const r=await fetch(`/api/products/${encodeURIComponent(id)}`,{method:"DELETE"});
+  if(r.ok) await list();
+}
+
+function renderServerSnapshot(){
+  const summary=$("#server-summary");
+  const log=$("#server-log");
+  const list=Array.isArray(window._serverProducts)?window._serverProducts:[];
+  if(summary){
+    summary.textContent=list.length
+      ? `${list.length} produto(s) cadastrados no servidor.`
+      : "Nenhum produto cadastrado no servidor ainda.";
+  }
+  if(log){
+    if(!list.length){
+      log.textContent="Cadastre produtos usando o formulário ao lado.";
+    }else{
+      log.textContent=list.map(p=>`• ${p.name} — ${p.category||'Sem categoria'} — ${maybeFmt(p.price)}`).join("\n");
+    }
+  }
+}
+
+function renderLocalSnapshot(){
+  const summary=$("#sync-summary");
+  const log=$("#sync-log");
+  const local=Array.isArray(_localFound)?_localFound:[];
+  const server=Array.isArray(window._serverProducts)?window._serverProducts:[];
+  if(summary){
+    if(local.length){
+      summary.textContent=`${local.length} produto(s) locais prontos para enviar.`;
+      if(server.length){
+        summary.textContent+=` ${server.length} produto(s) já estão no servidor.`;
+      }
+    }else{
+      summary.textContent="Nenhum produto local encontrado.";
+      if(server.length){
+        summary.textContent+=` ${server.length} produto(s) no servidor.`;
+      }
+    }
+  }
+  if(log){
+    if(!local.length){
+      log.textContent='Use "Ler produtos do navegador" para localizar cadastros antigos salvos no navegador.';
+    }else{
+      const serverMap=new Map(server.map(p=>[slugify(p.name),p]));
+      const novos=[];
+      const atualizacoes=[];
+      local.forEach(item=>{
+        const key=slugify(item.name);
+        const match=serverMap.get(key);
+        if(match){
+          atualizacoes.push({local:item,server:match});
+        }else{
+          novos.push(item);
+        }
+      });
+      const linhas=[];
+      if(novos.length){
+        linhas.push("Novos produtos (serão criados):");
+        novos.forEach(p=>{
+          linhas.push(`＋ ${p.name} — ${(p.category||'Sem categoria')} — ${maybeFmt(p.price)}`);
+        });
+      }
+      if(atualizacoes.length){
+        if(linhas.length) linhas.push("");
+        linhas.push("Já existem (serão atualizados):");
+        atualizacoes.forEach(({local,server})=>{
+          const localPrice=Number(local.price);
+          const serverPrice=Number(server.price);
+          const priceChanged=Number.isFinite(localPrice)&&Number.isFinite(serverPrice)&&localPrice!==serverPrice;
+          const detail=priceChanged ? `${maybeFmt(serverPrice)} → ${maybeFmt(localPrice)}` : `${maybeFmt(serverPrice)}`;
+          linhas.push(`↻ ${local.name} — ${(local.category||server.category||'Sem categoria')} — ${detail}`);
+        });
+      }
+      if(!linhas.length){
+        linhas.push("Todos os produtos locais já existem no servidor com o mesmo nome.");
+      }
+      log.textContent=linhas.join("\n");
+    }
+  }
+}
+
+/* ==== SINCRONIZAÇÃO LOCAL -> API ==== */
+let _localFound = [];
+$("#scanLocal").addEventListener("click", async ()=>{
+  const arr = scanLocalProducts();
+  _localFound = arr;
+  $("#syncServer").disabled = arr.length===0;
+  renderLocalSnapshot();
+  await list();
+  renderLocalSnapshot();
+});
+
+$("#syncServer").addEventListener("click", async ()=>{
+  const btn = $("#syncServer"); btn.disabled = true;
+  const log = $("#sync-log"); log.textContent = "Sincronizando...\n";
+  // mapa do servidor por nome "slug"
+  await list(); // atualiza window._serverProducts
+  const map = new Map((window._serverProducts||[]).map(p=>[slugify(p.name), p]));
+
+  let ok=0, fail=0;
+  for(const p of _localFound){
+    const payload = toServerPayload(p);
+    try{
+      const existing = map.get(slugify(p.name));
+      let r;
+      if(existing){
+        r = await fetch(`/api/products/${encodeURIComponent(existing.id)}`,{
+          method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+        });
+      }else{
+        r = await fetch("/api/products",{
+          method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)
+        });
+      }
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      ok++;
+      log.textContent += `OK: ${p.name}\n`;
+    }catch(e){
+      fail++;
+      log.textContent += `ERRO: ${p.name} -> ${e.message}\n`;
+    }
+  }
+  log.textContent += `\nConcluído. Sucesso: ${ok} | Falhas: ${fail}\n`;
+  await list();
+  btn.disabled = false;
+});
+
+/* === util da sincronização === */
+function scanLocalProducts(){
+  const list = [];
+  for (let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(!k) continue;
+    try{
+      const val = JSON.parse(localStorage.getItem(k));
+      if (Array.isArray(val) && val.length && looksLikeProductsArray(val)){
+        list.push(...val.map(normalizeLocalProduct));
+      }
+    }catch{}
+  }
+  return list;
+}
+function looksLikeProductsArray(arr){
+  return arr.some(p => p && (p.name || p.nome) && (p.price!=null || p.preco!=null || p["preço"]!=null));
+}
+function normalizeLocalProduct(p){
+  const name = p.name ?? p.nome ?? "Produto";
+  const category = p.category ?? p.categoria ?? "Outros";
+  const priceRaw = p.price ?? p.preco ?? p["preço"] ?? 0;
+  const oldPriceRaw = p.oldPrice ?? p.precoAntigo ?? p["preçoAntigo"] ?? null;
+  const image = p.image ?? p.img ?? p.foto ?? p.imagem ?? "";
+  const tags = (p.tags && Array.isArray(p.tags)) ? p.tags.join(",")
+              : (typeof p.tags === "string" ? p.tags : "");
+  const price = toNumber(priceRaw);
+  const oldPrice = oldPriceRaw!=null ? toNumber(oldPriceRaw) : null;
+  const id = (p.id || slugify(name)+"-"+Math.random().toString(36).slice(2,7));
+  return { id, name, category, price, oldPrice, image, subtitle: p.subtitle||p.subtitulo||"", description: p.description||p.descricao||"", tags };
+}
+function toServerPayload(p){
+  return {
+    id: undefined, // deixamos o servidor gerar em POST; em PUT usamos o id do existente
+    name: p.name,
+    category: p.category,
+    price: Number(p.price||0),
+    oldPrice: p.oldPrice!=null ? Number(p.oldPrice) : null,
+    tags: typeof p.tags==="string" ? p.tags.split(",").map(s=>s.trim()).filter(Boolean) : (p.tags||[]),
+    image: p.image||"",
+    description: p.description||"",
+    subtitle: p.subtitle||""
+  };
+}
+
+/* boot */
+loadFeaturedSlots();
+loadHomeSlots();
+list();
+</script>
+</body></html>
+

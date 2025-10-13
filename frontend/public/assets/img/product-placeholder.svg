@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Imagem ilustrativa</title>
+  <desc id="desc">Quadro degradê com ícone de produto e texto foto indisponível</desc>
+  <defs>
+    <linearGradient id="grad" x1="12%" y1="8%" x2="88%" y2="92%">
+      <stop offset="0%" stop-color="#8b5cff"/>
+      <stop offset="55%" stop-color="#4fd1c5"/>
+      <stop offset="100%" stop-color="#2d4ed8"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.65)"/>
+      <stop offset="60%" stop-color="rgba(255,255,255,0.08)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+    <filter id="shadow" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="rgba(9,6,24,0.45)"/>
+    </filter>
+  </defs>
+  <rect x="36" y="36" width="440" height="440" rx="48" fill="#120f1f"/>
+  <rect x="60" y="60" width="392" height="392" rx="42" fill="url(#grad)" filter="url(#shadow)"/>
+  <rect x="76" y="80" width="360" height="180" rx="32" fill="url(#shine)" opacity="0.5"/>
+  <g fill="rgba(255,255,255,0.85)" transform="translate(128 176)">
+    <path d="M128 0c-53 0-96 43-96 96s43 96 96 96 96-43 96-96S181 0 128 0Zm0 164a68 68 0 1 1 68-68 68 68 0 0 1-68 68Zm0-104a12 12 0 0 0-12 12v48a12 12 0 1 0 24 0v-48a12 12 0 0 0-12-12Z"/>
+    <path d="M56 228h144a36 36 0 0 1 36 36v12a12 12 0 0 1-12 12H32a12 12 0 0 1-12-12v-12a36 36 0 0 1 36-36Z"/>
+  </g>
+  <text x="50%" y="400" text-anchor="middle" font-family="'Inter', 'Segoe UI', sans-serif" font-size="42" font-weight="700" letter-spacing="0.08em" fill="rgba(255,255,255,0.88)">
+    FOTO INDISPONÍVEL
+  </text>
+</svg>
