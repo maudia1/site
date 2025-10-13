@@ -11,6 +11,8 @@
   --border:rgba(255,255,255,.08);
   --accent:#f0f0f0;
   --accent-soft:rgba(255,255,255,.14);
+  --cashback:#9be8b3;
+  --cashback-strong:#7dd89a;
   --radius:18px;
   --shadow:0 24px 60px rgba(0,0,0,.45);
 }
@@ -261,8 +263,14 @@ body.iw-modal-open{overflow:hidden}
 .product-subtitle{ font-size:.9rem; color:var(--muted) }
 
 /* Preço */
-.product-price{ display:flex; align-items:baseline; gap:10px; margin-top:4px }
+.product-pricing{ display:grid; gap:6px; margin-top:4px }
+.product-price-line{ display:flex; align-items:baseline; justify-content:space-between; gap:8px }
+.product-price-label{ font-size:.85rem; color:var(--muted); font-weight:500 }
 .price-now{ font-size:1.1rem; font-weight:700 }
+.product-price-line--cashback .product-price-label,
+.product-price-line--savings .product-price-label{ color:var(--cashback); }
+.price-cashback{ font-size:1.05rem; font-weight:700; color:var(--cashback-strong) }
+.price-saved{ font-size:.95rem; font-weight:600; color:var(--cashback-strong) }
 .price-old{ font-size:.95rem; color:#a4a4a4; text-decoration:line-through; opacity:.75 }
 
 /* Ações */
