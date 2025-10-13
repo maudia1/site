@@ -33,6 +33,45 @@ if(catSections.length && catChips.length){
   const catalogGrid = document.getElementById('catalog-grid');
   if(!featuredGrid && !catalogGrid) return;
 
+  const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
+  const CASHBACK_EVENT = 'iw-cashback-update';
+  let cashbackInfo = readCashbackFromStorage();
+  let featuredList = [];
+  let catalogList = [];
+  let catalogEmptyHtml = '';
+
+  const renderFeatured = ()=>{
+    if(featuredGrid){
+      featuredGrid.innerHTML = featuredList.map(renderCard).join('');
+    }
+  };
+
+  const renderCatalog = ()=>{
+    if(catalogGrid){
+      catalogGrid.innerHTML = catalogList.length
+        ? catalogList.map(renderCard).join('')
+        : catalogEmptyHtml;
+    }
+  };
+
+  const rerender = ()=>{
+    renderFeatured();
+    renderCatalog();
+  };
+
+  window.addEventListener(CASHBACK_EVENT, (event)=>{
+    const next = extractCashbackInfo(event?.detail);
+    cashbackInfo = next ?? readCashbackFromStorage();
+    rerender();
+  });
+
+  window.addEventListener('storage', (event)=>{
+    if(event.key === CASHBACK_RESULT_KEY){
+      cashbackInfo = readCashbackFromStorage();
+      rerender();
+    }
+  });
+
   const fallbackProducts = [
     {
       id:'capa-iphone-14-pro-max-clear',
@@ -71,9 +110,8 @@ if(catSections.length && catChips.length){
   const featuredFromApi = await loadFeaturedFromApi();
   const featuredToShow = featuredFromApi.length ? featuredFromApi.slice(0,3) : fallbackProducts.slice(0,3);
 
-  if(featuredGrid){
-    featuredGrid.innerHTML = featuredToShow.map(renderCard).join('');
-  }
+  featuredList = featuredToShow;
+  renderFeatured();
 
   if(catalogGrid){
     const featuredIds = new Set(featuredToShow.map(p=>p.id));
@@ -90,14 +128,16 @@ if(catSections.length && catChips.length){
 
     catalogToShow = catalogToShow.slice(0,6);
 
-    catalogGrid.innerHTML = catalogToShow.length
-      ? catalogToShow.map(renderCard).join('')
-      : '<p class="muted">Cadastre produtos no painel para vê-los aqui.</p>';
+    catalogList = catalogToShow;
+    catalogEmptyHtml = '<p class="muted">Cadastre produtos no painel para vê-los aqui.</p>';
+    renderCatalog();
   }
 
   function renderCard(p){
     const hasOld = Number.isFinite(Number(p.oldPrice)) && p.oldPrice>p.price;
     const pct = hasOld ? Math.round((1-p.price/p.oldPrice)*100) : 0;
+    const priceNow = Number(p.price) || 0;
+    const cb = computeCashback(priceNow);
     return `
     <article class="product-card">
       <a class="product-media" href="/produto/${encodeURIComponent(p.id)}">
@@ -107,9 +147,20 @@ if(catSections.length && catChips.length){
       <div class="product-body">
         <h3 class="product-title">${escapeHtml(p.name)}</h3>
         ${p.subtitle?`<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>`:''}
-        <div class="product-price">
-          <span class="price-now">${formatBRL(p.price)}</span>
-          <span class="price-old" ${hasOld?'':'hidden'}>${hasOld?formatBRL(p.oldPrice):''}</span>
+        <div class="product-pricing">
+          <div class="product-price-line">
+            <span class="product-price-label">Preço:</span>
+            <span class="price-now">${formatBRL(priceNow)}</span>
+          </div>
+          ${cb ? `
+          <div class="product-price-line product-price-line--cashback">
+            <span class="product-price-label">Com seu cashback:</span>
+            <span class="price-cashback">${formatBRL(cb.finalPrice)}</span>
+          </div>
+          <div class="product-price-line product-price-line--savings">
+            <span class="product-price-label">Você economiza:</span>
+            <span class="price-saved">${formatBRL(cb.applied)}</span>
+          </div>`:''}
         </div>
         <div class="product-actions">
           <a class="btn btn-primary" href="/produto/${encodeURIComponent(p.id)}">Comprar</a>
@@ -166,5 +217,37 @@ if(catSections.length && catChips.length){
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function extractCashbackInfo(payload){
+    if(!payload) return null;
+    const data = payload.data ?? payload;
+    if(!data || data.found === false) return null;
+    const amount = [data.cashback, data.valor, data.saldo, data.balance]
+      .map(Number)
+      .find(v=>Number.isFinite(v) && v>0);
+    if(!Number.isFinite(amount) || amount<=0) return null;
+    const name = data.name ? String(data.name) : '';
+    return { amount, name };
+  }
+
+  function readCashbackFromStorage(){
+    if(typeof window === 'undefined' || !window.localStorage) return null;
+    try{
+      const raw = localStorage.getItem(CASHBACK_RESULT_KEY);
+      if(!raw) return null;
+      const parsed = JSON.parse(raw);
+      return extractCashbackInfo(parsed?.data ?? parsed);
+    }catch{
+      return null;
+    }
+  }
+
+  function computeCashback(price){
+    if(!cashbackInfo) return null;
+    const applied = Math.min(Math.max(Number(cashbackInfo.amount)||0,0), Math.max(price,0));
+    if(!Number.isFinite(applied) || applied<=0) return null;
+    const finalPrice = Math.max(price - applied, 0);
+    return { applied, finalPrice };
   }
 })();

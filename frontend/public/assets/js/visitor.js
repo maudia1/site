@@ -1,6 +1,7 @@
 ﻿(() => {
   const STORAGE_KEY = 'iw.cb.checked.v1';
   const RESULT_KEY = 'iw.cb.result.v1';
+  const EVENT_NAME = 'iw-cashback-update';
 
   if (typeof window === 'undefined') return;
   if (localStorage.getItem(STORAGE_KEY)) return;
@@ -54,6 +55,14 @@
     setTimeout(() => toast.classList.remove('is-show'), 8000);
   };
 
+  const broadcast = (payload) => {
+    try {
+      window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: payload }));
+    } catch (err) {
+      console.warn('[cashback] não foi possível emitir evento', err);
+    }
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(overlay);
     document.body.appendChild(toast);
@@ -89,6 +98,7 @@
         const res = await fetch(`/api/cashback?phone=${encodeURIComponent(digits)}`);
         const data = await res.json().catch(() => ({}));
         localStorage.setItem(RESULT_KEY, JSON.stringify({ phone: digits, data }));
+        broadcast({ phone: digits, data });
         close();
         if (data && data.found && data.name) {
           const valor = Number(data.cashback || 0);

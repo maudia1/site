@@ -3,12 +3,28 @@ const grid = $("#product-grid"), countEl=$("#count");
 const inputSearch=$("#search"), selectCategory=$("#category"), selectSort=$("#sort");
 
 const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
+const CASHBACK_EVENT = 'iw-cashback-update';
+let cashbackInfo = readCashbackFromStorage();
 let PRODUCTS = [];
 
 init().catch(err=>{
   console.error(err);
   countEl.textContent = "Erro ao carregar produtos.";
   grid.innerHTML = `<div class="muted">API indisponível.</div>`;
+});
+
+window.addEventListener(CASHBACK_EVENT, (event)=>{
+  const next = extractCashbackInfo(event?.detail);
+  cashbackInfo = next ?? readCashbackFromStorage();
+  render();
+});
+
+window.addEventListener('storage', (event)=>{
+  if(event.key === CASHBACK_RESULT_KEY){
+    cashbackInfo = readCashbackFromStorage();
+    render();
+  }
 });
 
 async function init(){
@@ -181,6 +197,8 @@ function render(){
 
 function cardHTML(p){
   const hasOld = p.oldPrice && Number(p.oldPrice) > Number(p.price);
+  const priceNow = Number(p.price) || 0;
+  const cb = computeCashback(priceNow);
   return `
   <article class="product-card">
     <a class="product-media" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}">
@@ -190,9 +208,20 @@ function cardHTML(p){
     <div class="product-body">
       <h3 class="product-title">${escapeHtml(p.name)}</h3>
       ${p.subtitle ? `<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>` : ""}
-      <div class="product-price">
-        <span class="price-now">${fmt(Number(p.price))}</span>
-        <span class="price-old" ${hasOld ? "" : "hidden"}>${hasOld ? fmt(Number(p.oldPrice)) : ""}</span>
+      <div class="product-pricing">
+        <div class="product-price-line">
+          <span class="product-price-label">Preço:</span>
+          <span class="price-now">${fmt(priceNow)}</span>
+        </div>
+        ${cb ? `
+        <div class="product-price-line product-price-line--cashback">
+          <span class="product-price-label">Com seu cashback:</span>
+          <span class="price-cashback">${fmt(cb.finalPrice)}</span>
+        </div>
+        <div class="product-price-line product-price-line--savings">
+          <span class="product-price-label">Você economiza:</span>
+          <span class="price-saved">${fmt(cb.applied)}</span>
+        </div>` : ""}
       </div>
       <div class="product-actions">
         <a class="btn btn-primary" href="/produto/${encodeURIComponent(p.id)}">Comprar</a>
@@ -204,3 +233,35 @@ function cardHTML(p){
 
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function debounce(fn,wait=200){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),wait)};}
+
+function extractCashbackInfo(payload){
+  if(!payload) return null;
+  const data = payload.data ?? payload;
+  if(!data || data.found === false) return null;
+  const amount = [data.cashback, data.valor, data.saldo, data.balance]
+    .map(Number)
+    .find(v=>Number.isFinite(v) && v>0);
+  if(!Number.isFinite(amount) || amount<=0) return null;
+  const name = data.name ? String(data.name) : '';
+  return { amount, name };
+}
+
+function readCashbackFromStorage(){
+  if(typeof window === 'undefined' || !window.localStorage) return null;
+  try{
+    const raw = localStorage.getItem(CASHBACK_RESULT_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    return extractCashbackInfo(parsed?.data ?? parsed);
+  }catch{
+    return null;
+  }
+}
+
+function computeCashback(price){
+  if(!cashbackInfo) return null;
+  const applied = Math.min(Math.max(Number(cashbackInfo.amount)||0,0), Math.max(price,0));
+  if(!Number.isFinite(applied) || applied<=0) return null;
+  const finalPrice = Math.max(price - applied, 0);
+  return { applied, finalPrice };
+}
