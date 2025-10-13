@@ -1,3 +1,22 @@
+const CART_ADD_EVENT = 'iw-cart-add';
+
+function encodeCartPayload(data){
+  try{
+    return encodeURIComponent(JSON.stringify(data));
+  }catch{
+    return '';
+  }
+}
+
+function decodeCartPayload(value){
+  try{
+    if(!value) return null;
+    return JSON.parse(decodeURIComponent(value));
+  }catch{
+    return null;
+  }
+}
+
 // Scroll reveal
 const observer = new IntersectionObserver((entries)=>{
   entries.forEach(e=>{
@@ -5,6 +24,17 @@ const observer = new IntersectionObserver((entries)=>{
   });
 },{threshold:0.14});
 document.querySelectorAll('.reveal, .section-title, .pill').forEach(el=>observer.observe(el));
+
+document.addEventListener('click', (event)=>{
+  const btn = event.target.closest('[data-product-cart]');
+  if(!btn) return;
+  event.preventDefault();
+  const raw = btn.getAttribute('data-product-cart');
+  const payload = decodeCartPayload(raw);
+  if(payload){
+    window.dispatchEvent(new CustomEvent(CART_ADD_EVENT,{detail:payload}));
+  }
+});
 
 // Categoria chips sticky highlight
 const catSections = Array.from(document.querySelectorAll('.cat-section'));
@@ -138,6 +168,13 @@ if(catSections.length && catChips.length){
     const pct = hasOld ? Math.round((1-p.price/p.oldPrice)*100) : 0;
     const priceNow = Number(p.price) || 0;
     const cb = computeCashback(priceNow);
+    const payload = encodeCartPayload({
+      id:p.id,
+      name:p.name,
+      price:priceNow,
+      image:p.image || '',
+      url:`/produto/${encodeURIComponent(p.id)}`
+    });
     return `
     <article class="product-card">
       <a class="product-media" href="/produto/${encodeURIComponent(p.id)}">
@@ -164,7 +201,7 @@ if(catSections.length && catChips.length){
         </div>
         <div class="product-actions">
           <a class="btn btn-primary" href="/produto/${encodeURIComponent(p.id)}">Comprar</a>
-          <a class="btn btn-ghost" href="/catalogo">Ver mais</a>
+          <button class="btn btn-ghost" type="button" data-product-cart="${payload}">Adicionar ao carrinho</button>
         </div>
       </div>
     </article>`;

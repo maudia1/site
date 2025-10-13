@@ -1,3 +1,4 @@
+const CART_ADD_EVENT = 'iw-cart-add';
 const $ = (s, c=document)=>c.querySelector(s);
 const grid = $("#product-grid"), countEl=$("#count");
 const inputSearch=$("#search"), selectCategory=$("#category"), selectSort=$("#sort");
@@ -8,6 +9,16 @@ const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
 let cashbackInfo = readCashbackFromStorage();
 let PRODUCTS = [];
+
+document.addEventListener('click', (event)=>{
+  const btn = event.target.closest('[data-product-cart]');
+  if(!btn) return;
+  event.preventDefault();
+  const payload = decodeCartPayload(btn.getAttribute('data-product-cart'));
+  if(payload){
+    window.dispatchEvent(new CustomEvent(CART_ADD_EVENT,{detail:payload}));
+  }
+});
 
 function normalizeGallery(...sources){
   const collected=[];
@@ -223,8 +234,16 @@ function cardHTML(p){
   const hasOld = p.oldPrice && Number(p.oldPrice) > Number(p.price);
   const priceNow = Number(p.price) || 0;
   const gallery = normalizeGallery(p.image, Array.isArray(p.images)?p.images:[]).slice(0,3);
-  const cover = escapeHtml(gallery[0] || p.image || PLACEHOLDER_IMAGE);
+  const coverRaw = gallery[0] || p.image || PLACEHOLDER_IMAGE;
+  const cover = escapeHtml(coverRaw);
   const cb = computeCashback(priceNow);
+  const payload = encodeCartPayload({
+    id:p.id,
+    name:p.name,
+    price:priceNow,
+    image:coverRaw,
+    url:`/produto/${encodeURIComponent(p.id)}`
+  });
   return `
   <article class="product-card">
     <a class="product-media" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}">
@@ -251,7 +270,7 @@ function cardHTML(p){
       </div>
       <div class="product-actions">
         <a class="btn btn-primary" href="/produto/${encodeURIComponent(p.id)}">Comprar</a>
-        <a class="btn btn-ghost" href="/produto/${encodeURIComponent(p.id)}">Detalhes</a>
+        <button class="btn btn-ghost" type="button" data-product-cart="${payload}">Adicionar ao carrinho</button>
       </div>
     </div>
   </article>`;
@@ -290,4 +309,21 @@ function computeCashback(price){
   if(!Number.isFinite(applied) || applied<=0) return null;
   const finalPrice = Math.max(price - applied, 0);
   return { applied, finalPrice };
+}
+
+function encodeCartPayload(data){
+  try{
+    return encodeURIComponent(JSON.stringify(data));
+  }catch{
+    return '';
+  }
+}
+
+function decodeCartPayload(value){
+  try{
+    if(!value) return null;
+    return JSON.parse(decodeURIComponent(value));
+  }catch{
+    return null;
+  }
 }
