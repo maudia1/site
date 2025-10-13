@@ -18,6 +18,13 @@
       <a href="/catalogo">Produtos</a>
       <a href="/#contato">Contato</a>
     </nav>
+    <div class="nav-actions">
+      <a class="icon-btn" href="/catalogo" aria-label="Buscar" title="Buscar">&#128269;</a>
+      <button class="icon-btn" type="button" data-cart-open aria-label="Carrinho" title="Carrinho">
+        &#128722;
+        <span class="cart-count" data-cart-count hidden>0</span>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -50,6 +57,7 @@
         <div id="product-tags" class="product-tags" hidden></div>
         <div class="product-actions">
           <a id="product-cta" class="btn btn-primary" href="#" target="_blank" rel="noopener">Comprar agora</a>
+          <button id="product-add-cart" class="btn btn-ghost" type="button" data-add-to-cart>Adicionar ao carrinho</button>
           <a class="btn btn-ghost" href="/catalogo">Voltar ao cat&aacute;logo</a>
         </div>
       </article>
@@ -87,9 +95,12 @@
   </div>
 </footer>
 
+<script src="/assets/js/cart.js" defer></script>
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
 
+  const CART_ADD_EVENT = 'iw-cart-add';
+  const CHECKOUT_WHATSAPP = '5561998348060';
   const fmt = (n)=> Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   const statusEl = document.getElementById('product-status');
   const layout = document.getElementById('product-content');
@@ -107,7 +118,26 @@
   const imgEl = document.getElementById('product-image');
   const thumbsEl = document.getElementById('product-thumbs');
   const ctaEl = document.getElementById('product-cta');
+  const addCartBtn = document.getElementById('product-add-cart');
   const crumb = document.getElementById('crumb-product');
+  let currentProduct = null;
+  if(addCartBtn){
+    addCartBtn.disabled = true;
+    addCartBtn.addEventListener('click', ()=>{
+      if(!currentProduct) return;
+      const price = Number(currentProduct.price);
+      if(!currentProduct.id || !currentProduct.name || !Number.isFinite(price)) return;
+      const image = currentProduct.image || (Array.isArray(currentProduct.images)&&currentProduct.images[0]) || '';
+      const payload = {
+        id: currentProduct.id,
+        name: currentProduct.name,
+        price,
+        image,
+        url: `/produto/${encodeURIComponent(currentProduct.id)}`
+      };
+      window.dispatchEvent(new CustomEvent(CART_ADD_EVENT,{detail:payload}));
+    });
+  }
 
   function normalizeGallery(...sources){
     const collected=[];
@@ -158,6 +188,10 @@
     statusEl.textContent = '';
     layout.hidden = false;
     details.hidden = false;
+    currentProduct = Object.assign({}, p);
+    if(addCartBtn){
+      addCartBtn.disabled = false;
+    }
 
     document.title = `iWanted &mdash; ${p.name}`;
     crumb.textContent = p.name;
@@ -254,7 +288,7 @@
     }
 
     const message = encodeURIComponent(`Ol\u00e1! Tenho interesse no produto ${p.name}`);
-    ctaEl.href = `https://wa.me/5500000000000?text=${message}`;
+    ctaEl.href = `https://wa.me/${CHECKOUT_WHATSAPP}?text=${message}`;
   }
 
   function escapeHtml(str){
