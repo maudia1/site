@@ -1,0 +1,471 @@
+import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingCart, X, Phone, Smartphone, MapPin, Search, ChevronRight, Trash2, Store, Star, BadgeCheck, Menu } from "lucide-react";
+
+// =====================
+// Helper Utils
+// =====================
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const WPP_NUMBER = "5561992074182";
+
+const cn = (...classes) => classes.filter(Boolean).join(" ");
+
+// =====================
+// Sample Product Catalog
+// =====================
+const CATEGORIES = [
+  { key: "iphones", label: "iPhone", icon: <Smartphone className="w-4 h-4" /> },
+  { key: "ipads", label: "iPad" },
+  { key: "mac", label: "Mac" },
+  { key: "watch", label: "Apple Watch" },
+  { key: "airpods", label: "AirPods" },
+  { key: "acessorios", label: "Acessórios" },
+  { key: "servicos", label: "Serviços" },
+];
+
+const PRODUCTS = [
+  // iPhone
+  { id: "p1", name: "iPhone 15 Pro 128GB", category: "iphones", price: 6999, highlight: true, tag: "Novo", image: "/api/placeholder/600/600" },
+  { id: "p2", name: "iPhone 15 128GB", category: "iphones", price: 5299, image: "/api/placeholder/600/600" },
+  { id: "p3", name: "iPhone 14 128GB", category: "iphones", price: 4299, image: "/api/placeholder/600/600" },
+
+  // iPad
+  { id: "p4", name: "iPad (10ª geração) 64GB", category: "ipads", price: 2899, image: "/api/placeholder/600/600" },
+  { id: "p5", name: "iPad Air M2 128GB", category: "ipads", price: 4699, image: "/api/placeholder/600/600" },
+
+  // Mac
+  { id: "p6", name: "MacBook Air 13-inch M2 8/256", category: "mac", price: 7699, image: "/api/placeholder/600/600" },
+  { id: "p7", name: "MacBook Pro 14-inch M3 16/512", category: "mac", price: 13999, image: "/api/placeholder/600/600" },
+
+  // Watch
+  { id: "p8", name: "Apple Watch Series 10 41mm", category: "watch", price: 3499, image: "/api/placeholder/600/600" },
+  { id: "p9", name: "Apple Watch Ultra 2 49mm", category: "watch", price: 6799, image: "/api/placeholder/600/600" },
+
+  // AirPods
+  { id: "p10", name: "AirPods 3", category: "airpods", price: 1599, image: "/api/placeholder/600/600" },
+  { id: "p11", name: "AirPods Pro (2ª geração)", category: "airpods", price: 2299, image: "/api/placeholder/600/600" },
+
+  // Acessórios
+  { id: "p12", name: "Cabo USB-C Original 1m", category: "acessorios", price: 189, image: "/api/placeholder/600/600" },
+  { id: "p13", name: "Carregador 20W USB-C Apple", category: "acessorios", price: 279, image: "/api/placeholder/600/600" },
+
+  // Serviços
+  { id: "p14", name: "Película de Vidro – Aplicação", category: "servicos", price: 69, image: "/api/placeholder/600/600" },
+  { id: "p15", name: "Migração de Dados", category: "servicos", price: 149, image: "/api/placeholder/600/600" },
+];
+
+// =====================
+// Branches / Stores
+// =====================
+const STORES = [
+  { id: "st1", name: "Pátio Brasil", district: "Asa Sul", map: "https://maps.google.com/?q=P%C3%A1tio+Brasil+Shopping" },
+  { id: "st2", name: "Gilberto Salomão", district: "Lago Sul", map: "https://maps.google.com/?q=Shopping+Gilberto+Salom%C3%A3o" },
+  { id: "st3", name: "ParkShopping", district: "Guará", map: "https://maps.google.com/?q=ParkShopping+Bras%C3%ADlia" },
+  { id: "st4", name: "Sudoeste", district: "Sudoeste", map: "https://maps.google.com/?q=Sudoeste+Comercial" },
+];
+
+// =====================
+// UI Pieces
+// =====================
+function Tag({ children }) {
+  return (
+    <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider rounded-full border border-zinc-700/80 bg-zinc-900/60 text-zinc-200">
+      {children}
+    </span>
+  );
+}
+
+function CartItem({ item, onInc, onDec, onRemove }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-zinc-200 text-xs">
+        {item.name.split(" ")[0]}
+      </div>
+      <div className="flex-1">
+        <div className="text-sm text-zinc-100">{item.name}</div>
+        <div className="text-xs text-zinc-400">{BRL.format(item.price)}</div>
+        <div className="mt-1 flex items-center gap-2">
+          <button onClick={onDec} className="px-2 py-1 rounded-md bg-zinc-800 text-zinc-200 text-xs">-</button>
+          <span className="text-zinc-100 text-sm">{item.qty}</span>
+          <button onClick={onInc} className="px-2 py-1 rounded-md bg-zinc-800 text-zinc-200 text-xs">+</button>
+          <button onClick={onRemove} className="ml-2 text-xs text-red-400 hover:text-red-300 flex items-center gap-1"><Trash2 className="w-3 h-3"/>remover</button>
+        </div>
+      </div>
+      <div className="text-sm text-zinc-100">{BRL.format(item.price * item.qty)}</div>
+    </div>
+  );
+}
+
+function ProductCard({ product, onAdd }) {
+  return (
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      whileInView={{ y: 0, opacity: 1 }}
+      viewport={{ once: true, amount: 0.4 }}
+      transition={{ type: "spring", stiffness: 60, damping: 12 }}
+      className="group rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-950 to-black p-4 hover:border-zinc-700/80 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.05),0_20px_60px_-20px_rgba(0,0,0,0.6)] transition-all"
+    >
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.06),rgba(0,0,0,0.0))]">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-40 h-40 rounded-2xl bg-gradient-to-br from-zinc-700 to-zinc-900/60 blur-[1px]" />
+        </div>
+        <div className="absolute top-3 left-3 flex gap-2">
+          {product.highlight && <Tag>Destaque</Tag>}
+          {product.tag && <Tag>{product.tag}</Tag>}
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Smartphone className="w-16 h-16 text-zinc-300/60" />
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        <h3 className="text-zinc-100 font-medium leading-tight line-clamp-2">{product.name}</h3>
+        <div className="text-zinc-400 text-sm">{BRL.format(product.price)}</div>
+        <button
+          onClick={() => onAdd(product)}
+          className="w-full rounded-xl bg-white text-black py-2.5 text-sm font-medium hover:bg-zinc-200 transition-colors"
+        >
+          Adicionar ao carrinho
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function CategoryPill({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-3 py-1.5 rounded-full border text-sm transition-all",
+        active
+          ? "bg-white text-black border-white"
+          : "border-zinc-800/90 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+// =====================
+// Main App
+// =====================
+export default function IWantedApp() {
+  const [category, setCategory] = useState("iphones");
+  const [query, setQuery] = useState("");
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cart, setCart] = useState([]); // { id, name, price, qty }
+  const [storeId, setStoreId] = useState(STORES[0].id);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const filtered = useMemo(() => {
+    return PRODUCTS.filter((p) =>
+      (category ? p.category === category : true) &&
+      (query ? p.name.toLowerCase().includes(query.toLowerCase()) : true)
+    );
+  }, [category, query]);
+
+  const total = useMemo(() => cart.reduce((sum, i) => sum + i.price * i.qty, 0), [cart]);
+  const store = useMemo(() => STORES.find((s) => s.id === storeId), [storeId]);
+
+  function addToCart(product) {
+    setCartOpen(true);
+    setCart((prev) => {
+      const idx = prev.findIndex((i) => i.id === product.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], qty: copy[idx].qty + 1 };
+        return copy;
+      }
+      return [...prev, { id: product.id, name: product.name, price: product.price, qty: 1 }];
+    });
+  }
+
+  function inc(id) {
+    setCart((prev) => prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)));
+  }
+  function dec(id) {
+    setCart((prev) => prev.map((i) => (i.id === id ? { ...i, qty: Math.max(1, i.qty - 1) } : i)));
+  }
+  function removeItem(id) {
+    setCart((prev) => prev.filter((i) => i.id !== id));
+  }
+
+  function buildWhatsAppLink() {
+    const lines = [
+      `Olá, iWanted! Quero finalizar meu pedido:`,
+      ...cart.map((i) => `• ${i.qty}x ${i.name} — ${BRL.format(i.price * i.qty)}`),
+      `Total: ${BRL.format(total)}`,
+      `Loja para retirada/atendimento: ${store?.name}`,
+    ];
+    const text = encodeURIComponent(lines.join("\n"));
+    return `https://wa.me/${WPP_NUMBER}?text=${text}`;
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black pb-24 [padding-bottom:env(safe-area-inset-bottom)]">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-zinc-900/90 backdrop-blur bg-black/70">
+        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <BadgeCheck className="w-5 h-5 text-white" />
+            <span className="font-semibold tracking-tight">iWanted</span>
+            <span className="ml-3 text-xs text-zinc-400 flex items-center gap-1"><Star className="w-3 h-3"/>Autorizada Apple</span>
+          </div>
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-6 text-sm text-zinc-300">
+            <a href="#catalogo" className="hover:text-white">Catálogo</a>
+            <a href="#lojas" className="hover:text-white">Lojas</a>
+            <a href="#contato" className="hover:text-white">Contato</a>
+          </nav>
+
+          {/* Mobile menu button */}
+          <button onClick={() => setMobileOpen(true)} className="md:hidden rounded-xl border border-zinc-800 p-2 hover:bg-zinc-900" aria-label="Abrir menu">
+            <Menu className="w-5 h-5"/>
+          </button>
+
+          {/* Cart button */}
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCartOpen(true)} className="relative rounded-xl border border-zinc-800 px-3 py-2 text-sm hover:bg-zinc-900 flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4"/>
+              <span>Carrinho</span>
+              {cart.length > 0 && (
+                <span className="ml-1 text-[11px] px-1.5 py-0.5 rounded bg-white text-black">{cart.reduce((s, i) => s + i.qty, 0)}</span>
+              )}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur"
+            onClick={() => setMobileOpen(false)}
+          >
+            <motion.div
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: "spring", stiffness: 120, damping: 20 }}
+              className="absolute left-0 top-0 h-full w-72 bg-black border-r border-zinc-900 p-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <span className="font-semibold">Menu</span>
+                <button onClick={() => setMobileOpen(false)} className="rounded-lg border border-zinc-800 p-1.5 hover:bg-zinc-900" aria-label="Fechar menu"><X className="w-4 h-4"/></button>
+              </div>
+              <nav className="flex flex-col gap-3 text-sm">
+                <a href="#catalogo" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 border border-zinc-800 hover:bg-zinc-900">Catálogo</a>
+                <a href="#lojas" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 border border-zinc-800 hover:bg-zinc-900">Lojas</a>
+                <a href="#contato" onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 border border-zinc-800 hover:bg-zinc-900">Contato</a>
+                <button onClick={() => { setCartOpen(true); setMobileOpen(false); }} className="rounded-lg px-3 py-2 border border-zinc-800 hover:bg-zinc-900 text-left flex items-center gap-2"><ShoppingCart className="w-4 h-4"/>Abrir carrinho</button>
+                <a href={`https://wa.me/${WPP_NUMBER}`} target="_blank" className="rounded-lg px-3 py-2 border border-zinc-800 hover:bg-zinc-900 flex items-center gap-2"><Phone className="w-4 h-4"/>WhatsApp</a>
+              </nav>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 opacity-40" aria-hidden="true">
+          <div className="absolute -top-20 -left-20 w-[40rem] h-[40rem] rounded-full bg-[conic-gradient(from_90deg,transparent,white,transparent)] blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.14),transparent_60%)]" />
+        </div>
+        <div className="mx-auto max-w-7xl px-4 py-20 md:py-28">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-4xl md:text-6xl font-semibold tracking-tight">
+            Tecnologia Apple, <span className="text-zinc-400">com atendimento de boutique.</span>
+          </motion.h1>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6 }} className="mt-4 max-w-2xl text-zinc-300">
+            Somos iWanted — assistência autorizada e revenda com curadoria. Compre iPhone, iPad, Mac e acessórios, ou visite nossas lojas em Brasília.
+          </motion.p>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.6 }} className="mt-8 flex flex-wrap items-center gap-3">
+            <a href="#catalogo" className="rounded-xl bg-white text-black px-5 py-3 text-sm font-medium hover:bg-zinc-200">Ver catálogo</a>
+            <a href="#lojas" className="rounded-xl border border-zinc-800 px-5 py-3 text-sm text-white hover:bg-zinc-900">Lojas</a>
+            <a href={`https://wa.me/${WPP_NUMBER}`} target="_blank" className="rounded-xl border border-zinc-800 px-5 py-3 text-sm text-white hover:bg-zinc-900 flex items-center gap-2"><Phone className="w-4 h-4"/>WhatsApp</a>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Catalog */}
+      <section id="catalogo" className="mx-auto max-w-7xl px-4 py-12">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <h2 className="text-2xl font-semibold">Catálogo</h2>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:w-80">
+              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2"/>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar produtos..."
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-sm outline-none focus:border-zinc-600"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Categories */}
+        <div className="mt-6 flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => (
+            <CategoryPill key={c.key} active={category === c.key} onClick={() => setCategory(c.key)}>
+              <span className="flex items-center gap-2">{c.icon}{c.label}</span>
+            </CategoryPill>
+          ))}
+          <CategoryPill active={!category} onClick={() => setCategory("")}>Tudo</CategoryPill>
+        </div>
+
+        {/* Grid */}
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map((p) => (
+            <ProductCard key={p.id} product={p} onAdd={addToCart} />
+          ))}
+          {filtered.length === 0 && (
+            <div className="col-span-full text-zinc-400 text-sm">Nenhum produto encontrado.</div>
+          )}
+        </div>
+      </section>
+
+      {/* Stores */}
+      <section id="lojas" className="mx-auto max-w-7xl px-4 py-12">
+        <h2 className="text-2xl font-semibold">Nossas lojas</h2>
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          {STORES.map((s) => (
+            <motion.div key={s.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className={cn("rounded-2xl border p-5", storeId === s.id ? "border-white" : "border-zinc-800") }>
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Store className="w-4 h-4 text-zinc-400"/>
+                    <h3 className="font-medium">{s.name}</h3>
+                  </div>
+                  <div className="text-sm text-zinc-400 mt-1">{s.district}</div>
+                </div>
+                <button onClick={() => setStoreId(s.id)} className={cn("rounded-lg px-3 py-1.5 text-sm border", storeId === s.id ? "bg-white text-black border-white" : "border-zinc-800 hover:bg-zinc-900")}>{storeId === s.id ? "Selecionado" : "Selecionar"}</button>
+              </div>
+              <a target="_blank" href={s.map} className="mt-4 inline-flex items-center gap-1 text-sm text-zinc-300 hover:text-white">
+                <MapPin className="w-4 h-4"/> Ver no mapa <ChevronRight className="w-4 h-4"/>
+              </a>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section id="contato" className="mx-auto max-w-7xl px-4 py-12">
+        <div className="rounded-2xl border border-zinc-800 p-6 md:p-8 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.05),rgba(0,0,0,0))]">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <h3 className="text-xl font-semibold">Fale com a iWanted</h3>
+              <p className="text-zinc-300 mt-1">Dúvidas, orçamento ou suporte técnico autorizado.</p>
+              <div className="mt-3 text-zinc-400 text-sm">WhatsApp: <a className="underline hover:text-white" target="_blank" href={`https://wa.me/${WPP_NUMBER}`}>+55 (61) 99207-4182</a></div>
+            </div>
+            <div className="flex gap-3">
+              <a href={`https://wa.me/${WPP_NUMBER}`} target="_blank" className="rounded-xl bg-white text-black px-5 py-3 text-sm font-medium hover:bg-zinc-200 flex items-center gap-2"><Phone className="w-4 h-4"/>Abrir WhatsApp</a>
+              <a href="#lojas" className="rounded-xl border border-zinc-800 px-5 py-3 text-sm text-white hover:bg-zinc-900">Ver lojas</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-900/90">
+        <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-zinc-400 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div>© {new Date().getFullYear()} iWanted — Autorizada Apple.</div>
+          <div className="text-xs">Tema preto & branco · Brasília, DF</div>
+        </div>
+      </footer>
+
+      {/* Cart Drawer */}
+      <AnimatePresence>
+        {cartOpen && (
+          <motion.aside
+            initial={{ x: 420 }}
+            animate={{ x: 0 }}
+            exit={{ x: 420 }}
+            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+            className="fixed right-0 top-0 h-full w-full max-w-md z-50 bg-black border-l border-zinc-900 shadow-2xl"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-zinc-900">
+              <div className="flex items-center gap-2"><ShoppingCart className="w-4 h-4"/><span className="font-medium">Seu carrinho</span></div>
+              <button onClick={() => setCartOpen(false)} className="rounded-lg border border-zinc-800 p-1.5 hover:bg-zinc-900" aria-label="Fechar carrinho"><X className="w-4 h-4"/></button>
+            </div>
+
+            <div className="p-4 space-y-4 overflow-y-auto h-[calc(100%-220px)]">
+              {cart.length === 0 ? (
+                <div className="text-sm text-zinc-400">Seu carrinho está vazio.</div>
+              ) : (
+                cart.map((i) => (
+                  <CartItem
+                    key={i.id}
+                    item={i}
+                    onInc={() => inc(i.id)}
+                    onDec={() => dec(i.id)}
+                    onRemove={() => removeItem(i.id)}
+                  />
+                ))
+              )}
+            </div>
+
+            <div className="absolute bottom-0 left-0 right-0 border-t border-zinc-900 p-4 space-y-3 bg-black">
+              <div>
+                <div className="text-xs text-zinc-400 mb-1">Loja de atendimento</div>
+                <div className="flex flex-wrap gap-2">
+                  {STORES.map((s) => (
+                    <button key={s.id} onClick={() => setStoreId(s.id)} className={cn("px-3 py-1.5 rounded-full border text-xs", storeId === s.id ? "bg-white text-black border-white" : "border-zinc-800 text-zinc-300 hover:bg-zinc-900")}>{s.name}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-400">Subtotal</span>
+                <span className="text-white font-medium">{BRL.format(total)}</span>
+              </div>
+
+              <div className="flex gap-2">
+                <a
+                  href={buildWhatsAppLink()}
+                  target="_blank"
+                  className={cn(
+                    "flex-1 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium",
+                    cart.length === 0 ? "pointer-events-none opacity-40 bg-zinc-800 text-zinc-400" : "bg-white text-black hover:bg-zinc-200"
+                  )}
+                >
+                  <Phone className="w-4 h-4"/> Finalizar no WhatsApp
+                </a>
+                <button onClick={() => setCart([])} className="rounded-xl border border-zinc-800 px-4 py-3 text-sm text-white hover:bg-zinc-900">Limpar</button>
+              </div>
+
+              <div className="text-[11px] text-zinc-500">Ao finalizar, enviaremos seu pedido via WhatsApp para confirmar disponibilidade e prazos.</div>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Floating WhatsApp */}
+      <a
+        href={`https://wa.me/${WPP_NUMBER}`}
+        target="_blank"
+        className="fixed right-4 sm:bottom-4 bottom-20 rounded-full p-3 border border-zinc-800 bg-zinc-950/80 backdrop-blur hover:bg-zinc-900 inline-flex items-center gap-2 shadow-lg"
+        aria-label="Abrir WhatsApp"
+      >
+        <Phone className="w-5 h-5"/>
+      </a>
+
+      {/* Bottom Mobile Nav */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t border-zinc-900 bg-black/90 backdrop-blur [padding-bottom:env(safe-area-inset-bottom)]">
+        <div className="mx-auto max-w-7xl px-3 py-2 grid grid-cols-4 gap-2 text-xs">
+          <a href="#catalogo" className="flex items-center justify-center rounded-lg py-2 border border-zinc-800 hover:bg-zinc-900">Catálogo</a>
+          <a href="#lojas" className="flex items-center justify-center rounded-lg py-2 border border-zinc-800 hover:bg-zinc-900">Lojas</a>
+          <button onClick={() => setCartOpen(true)} className="flex items-center justify-center rounded-lg py-2 border border-zinc-800 hover:bg-zinc-900">Carrinho</button>
+          <a href={`https://wa.me/${WPP_NUMBER}`} target="_blank" className="flex items-center justify-center rounded-lg py-2 border border-zinc-800 hover:bg-zinc-900">WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  );
+}
