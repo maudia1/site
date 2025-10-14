@@ -202,6 +202,10 @@ a:hover{opacity:.9}
   body.nav-open{overflow:hidden}
 }
 
+@media (max-width:520px){
+  .cat-highlight-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
 @media (max-width:600px){
   .weekly-promos{padding:72px 0 48px}
   .promo-header{text-align:left;gap:12px;margin:0 0 32px}
