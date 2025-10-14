@@ -19,6 +19,7 @@
 }
 
 *{box-sizing:border-box}
+button,input,select,textarea{font:inherit}
 html,body{
   margin:0;
   min-height:100%;
@@ -247,7 +248,7 @@ a:hover{opacity:.9}
 .iw-modal .body{display:grid;gap:12px;margin-top:12px}
 .iw-modal .row{display:grid;gap:6px}
 .iw-modal label{font-size:.9rem;color:var(--muted)}
-.iw-modal input[type="tel"]{height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;padding:0 12px;outline:none}
+.iw-modal input[type="tel"]{height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;padding:0 12px;outline:none;font-size:1rem}
 .iw-modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
 .iw-modal .btn{height:44px}
 .iw-modal .hint{font-size:.85rem;color:var(--muted)}
@@ -275,7 +276,7 @@ body.iw-modal-open{overflow:hidden}
 .catalog-controls input[type="search"], .catalog-controls select{
   width:100%; height:44px; padding:0 12px; border-radius:12px;
   border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.08);
-  color:#fff; outline:none;
+  color:#fff; outline:none; font-size:1rem;
 }
 .catalog-controls input[type="search"]::placeholder{color:#9aa3a8}
 .control--search{grid-column:1 / -1}
