@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS products (
   price INTEGER NOT NULL,     -- em centavos
   oldPrice INTEGER,
   category TEXT NOT NULL,
+  brand TEXT,
   tags TEXT,
   image TEXT,
   images TEXT,
@@ -44,6 +45,14 @@ CREATE TABLE IF NOT EXISTS products (
   createdAt TEXT DEFAULT CURRENT_TIMESTAMP
 );
 `);
+
+try {
+  db.prepare("ALTER TABLE products ADD COLUMN brand TEXT").run();
+} catch (err) {
+  if (!(err && /duplicate column name/i.test(err.message || ""))) {
+    throw err;
+  }
+}
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS featured_products (
@@ -495,17 +504,19 @@ app.post("/api/products", requireAdmin, (req, res) => {
   const id = req.body.id || nanoid(10);
   const {
     name, /* subtitle ignorável */ subtitle,
-    price, oldPrice, category, tags, image, images = [], description, specs = {}
+    price, oldPrice, category, brand, tags, image, images = [], description, specs = {}
   } = req.body;
 
-  if (!name || !category || price == null) return res.status(400).json({ error: "missing_fields" });
+  const brandValue = typeof brand === "string" ? brand.trim() : "";
+
+  if (!name || !category || !brandValue || price == null) return res.status(400).json({ error: "missing_fields" });
 
   db.prepare(`
-    INSERT INTO products (id, name, subtitle, price, oldPrice, category, tags, image, images, description, specs)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, name, subtitle || null, toCents(price), oldPrice ? toCents(oldPrice) : null,
-    category, (Array.isArray(tags) ? tags.join(",") : (tags || null)),
+    category, brandValue || null, (Array.isArray(tags) ? tags.join(",") : (tags || null)),
     image || null, JSON.stringify(images || []), description || null, JSON.stringify(specs || {})
   );
   // Envia para Supabase de forma assíncrona (não bloqueia a resposta)
@@ -527,7 +538,8 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
   const cur = db.prepare("SELECT id FROM products WHERE id = ?").get(id);
   if (!cur) return res.status(404).json({ error: "not_found" });
 
-  const { name, subtitle, price, oldPrice, category, tags, image, images, description, specs } = req.body;
+  const { name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs } = req.body;
+  const brandValue = typeof brand === "string" ? brand.trim() : null;
 
   // Atualização dinâmica: preserva oldPrice quando ausente; permite limpar quando null
   const sets = [
@@ -536,6 +548,7 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
     "price = COALESCE(?, price)",
     // oldPrice inserido dinamicamente a seguir
     "category = COALESCE(?, category)",
+    "brand = COALESCE(?, brand)",
     "tags = COALESCE(?, tags)",
     "image = COALESCE(?, image)",
     "images = COALESCE(?, images)",
@@ -554,6 +567,7 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
   }
   params.push(
     category ?? null,
+    brandValue ?? null,
     tags ? (Array.isArray(tags) ? tags.join(",") : tags) : null,
     image ?? null,
     images ? JSON.stringify(images) : null,

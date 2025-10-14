@@ -108,6 +108,14 @@
             </div>
           </div>
 
+          <div class="row row-single">
+            <div class="stack"><label for="brand">Marca</label>
+              <select id="brand" required>
+                <option value="">Selecione</option>
+              </select>
+            </div>
+          </div>
+
           <div class="row">
             <div class="stack"><label>Preço atual (R$)</label><input id="price" type="number" step="0.01" placeholder="299,90"/></div>
             <div class="stack"><label>Preço anterior (opcional)</label><input id="oldPrice" type="number" step="0.01" placeholder="349,90"/></div>
@@ -244,7 +252,7 @@
         <input id="flt" placeholder="Buscar por nome, categoria ou tag" />
       </div>
       <table id="tbl"><thead><tr>
-        <th>Nome</th><th>Categoria</th><th class="right">Preço</th><th>Ações</th>
+        <th>Nome</th><th>Marca</th><th>Categoria</th><th class="right">Preço</th><th>Ações</th>
       </tr></thead><tbody></tbody></table>
     </section>
   </div>
@@ -255,6 +263,7 @@ const $=(s,c=document)=>c.querySelector(s);
 const fmt=(n)=>Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const maybeFmt=(n)=>Number.isFinite(Number(n))?fmt(Number(n)):"—";
 const FIXED_CATEGORIES=["Fones","Capas","Carregadores","Áudio"];
+const FIXED_BRANDS=["JBL","PRODIGEE","IMAGINE","HREBOS","KIMASTER","SHOKAN"];
 
 function normalizeGallery(...sources){
   const collected=[];
@@ -298,6 +307,36 @@ function renderCategoryOptions(selected=""){
   if(normalized){
     select.value=normalized;
   }else if(FIXED_CATEGORIES.includes(prev)){
+    select.value=prev;
+  }else{
+    select.value="";
+  }
+}
+
+function normalizeBrandValue(value){
+  if(!value) return "";
+  const str=String(value).trim();
+  if(!str) return "";
+  const match=FIXED_BRANDS.find(brand=>brand.toLowerCase()===str.toLowerCase());
+  return match || str;
+}
+
+function renderBrandOptions(selected=""){
+  const select=$("#brand");
+  if(!select) return;
+  const normalized=normalizeBrandValue(selected);
+  const opts=['<option value="">Selecione</option>'];
+  FIXED_BRANDS.forEach(brand=>{
+    opts.push(`<option value="${esc(brand)}">${esc(brand)}</option>`);
+  });
+  if(normalized && !FIXED_BRANDS.includes(normalized)){
+    opts.push(`<option value="${esc(normalized)}">${esc(normalized)} (marca antiga)</option>`);
+  }
+  const prev=select.value;
+  select.innerHTML=opts.join('');
+  if(normalized){
+    select.value=normalized;
+  }else if(FIXED_BRANDS.includes(prev)){
     select.value=prev;
   }else{
     select.value="";
@@ -469,9 +508,9 @@ async function list(){
   const tb=$("#tbl tbody"), q=($("#flt").value||"").toLowerCase();
   if(tb){
     tb.innerHTML=data.filter(p=>{
-      return !q || p.name.toLowerCase().includes(q) || (p.category||"").toLowerCase().includes(q) || (p.tags||"").toLowerCase().includes(q);
+      return !q || p.name.toLowerCase().includes(q) || (p.category||"").toLowerCase().includes(q) || (p.brand||"").toLowerCase().includes(q) || (p.tags||"").toLowerCase().includes(q);
     }).map(p=>`
-     <tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td class="right">${fmt(p.price)}</td>
+     <tr><td>${esc(p.name)}</td><td>${esc(p.brand||"")}</td><td>${esc(p.category)}</td><td class="right">${fmt(p.price)}</td>
      <td>
        <button class="btn" onclick="fill('${p.id}')">Editar</button>
        <button class="btn" onclick="dup('${p.id}')">Duplicar</button>
@@ -479,6 +518,7 @@ async function list(){
      </td></tr>`).join("");
   }
   refreshPromoOptions();
+  refreshHomeOptions();
   renderServerSnapshot();
   renderLocalSnapshot();
   return data;
@@ -580,6 +620,7 @@ function clearForm(){
   $("#image3").value="";
   $("#msg").textContent="";
   renderCategoryOptions();
+  renderBrandOptions();
   toggleAdvanced(false);
   setMode(null);
   setTimeout(()=>{$("#name")?.focus({preventScroll:true});},0);
@@ -598,6 +639,7 @@ async function save(){
   const priceRaw=$("#price").value;
   const oldPriceRaw=$("#oldPrice").value;
   const categorySelected=normalizeCategoryValue($("#category").value);
+  const brandSelected=normalizeBrandValue($("#brand").value);
   const primaryImage=$("#image").value.trim();
   const secondaryImage=$("#image2").value.trim();
   const tertiaryImage=$("#image3").value.trim();
@@ -605,6 +647,7 @@ async function save(){
   const body={
     name: $("#name").value.trim(),
     category: categorySelected,
+    brand: brandSelected,
     price: toNumber(priceRaw),
     oldPrice: oldPriceRaw?toNumber(oldPriceRaw):null,
     tags: $("#tags").value.split(",").map(s=>s.trim()).filter(Boolean),
@@ -616,6 +659,8 @@ async function save(){
   if(!body.name){ $("#msg").textContent="Informe o nome do produto."; return; }
   if(!body.category){ $("#msg").textContent="Informe a categoria."; return; }
   if(!FIXED_CATEGORIES.includes(body.category)){ $("#msg").textContent="Escolha uma das categorias disponíveis (Fones, Capas, Carregadores ou Áudio)."; return; }
+  if(!body.brand){ $("#msg").textContent="Informe a marca."; return; }
+  if(!FIXED_BRANDS.includes(body.brand)){ $("#msg").textContent="Escolha uma das marcas disponíveis."; return; }
   if(!Number.isFinite(body.price) || body.price<=0){ $("#msg").textContent="Preço inválido."; return; }
   if(!gallery.length){ $("#msg").textContent="Adicione pelo menos a foto principal."; return; }
   if(!body.description){ $("#msg").textContent="Descreva o produto."; return; }
@@ -644,6 +689,7 @@ async function fill(id){
   $("#image3").value=gallery[2]||"";
   $("#description").value=p.description||"";
   renderCategoryOptions(p.category||"");
+  renderBrandOptions(p.brand||"");
   setMode(p.id);
   toggleAdvanced(Boolean(tags));
   window.scrollTo({top:0,behavior:"smooth"});
@@ -652,6 +698,7 @@ async function dup(id){
   const r=await fetch(`/api/products/${encodeURIComponent(id)}`); const p=await r.json();
   $("#name").value=(p.name||"")+" (cópia)";
   renderCategoryOptions(p.category||"");
+  renderBrandOptions(p.brand||"");
   $("#price").value=p.price ?? ""; $("#oldPrice").value=p.oldPrice ?? "";
   const tags=Array.isArray(p.tags)?p.tags.join(", "):p.tags||"";
   $("#tags").value=tags;
@@ -683,7 +730,7 @@ function renderServerSnapshot(){
     if(!list.length){
       log.textContent="Cadastre produtos usando o formulário ao lado.";
     }else{
-      log.textContent=list.map(p=>`• ${p.name} — ${p.category||'Sem categoria'} — ${maybeFmt(p.price)}`).join("\n");
+      log.textContent=list.map(p=>`• ${p.name} — ${p.brand||'Sem marca'} — ${p.category||'Sem categoria'} — ${maybeFmt(p.price)}`).join("\n");
     }
   }
 }
@@ -726,7 +773,7 @@ function renderLocalSnapshot(){
       if(novos.length){
         linhas.push("Novos produtos (serão criados):");
         novos.forEach(p=>{
-          linhas.push(`＋ ${p.name} — ${(p.category||'Sem categoria')} — ${maybeFmt(p.price)}`);
+          linhas.push(`＋ ${p.name} — ${(p.brand||'Sem marca')} — ${(p.category||'Sem categoria')} — ${maybeFmt(p.price)}`);
         });
       }
       if(atualizacoes.length){
@@ -737,7 +784,7 @@ function renderLocalSnapshot(){
           const serverPrice=Number(server.price);
           const priceChanged=Number.isFinite(localPrice)&&Number.isFinite(serverPrice)&&localPrice!==serverPrice;
           const detail=priceChanged ? `${maybeFmt(serverPrice)} → ${maybeFmt(localPrice)}` : `${maybeFmt(serverPrice)}`;
-          linhas.push(`↻ ${local.name} — ${(local.category||server.category||'Sem categoria')} — ${detail}`);
+          linhas.push(`↻ ${local.name} — ${(local.brand||server.brand||'Sem marca')} — ${(local.category||server.category||'Sem categoria')} — ${detail}`);
         });
       }
       if(!linhas.length){
@@ -815,6 +862,7 @@ function looksLikeProductsArray(arr){
 function normalizeLocalProduct(p){
   const name = p.name ?? p.nome ?? "Produto";
   const category = p.category ?? p.categoria ?? "Outros";
+  const brand = normalizeBrandValue(p.brand ?? p.marca ?? "");
   const priceRaw = p.price ?? p.preco ?? p["preço"] ?? 0;
   const oldPriceRaw = p.oldPrice ?? p.precoAntigo ?? p["preçoAntigo"] ?? null;
   const image = p.image ?? p.img ?? p.foto ?? p.imagem ?? "";
@@ -825,7 +873,7 @@ function normalizeLocalProduct(p){
   const price = toNumber(priceRaw);
   const oldPrice = oldPriceRaw!=null ? toNumber(oldPriceRaw) : null;
   const id = (p.id || slugify(name)+"-"+Math.random().toString(36).slice(2,7));
-  return { id, name, category, price, oldPrice, image: cover, images: gallery, subtitle: p.subtitle||p.subtitulo||"", description: p.description||p.descricao||"", tags };
+  return { id, name, category, brand, price, oldPrice, image: cover, images: gallery, subtitle: p.subtitle||p.subtitulo||"", description: p.description||p.descricao||"", tags };
 }
 function toServerPayload(p){
   const gallery=normalizeGallery(p.image,p.images).slice(0,3);
@@ -833,6 +881,7 @@ function toServerPayload(p){
     id: undefined, // deixamos o servidor gerar em POST; em PUT usamos o id do existente
     name: p.name,
     category: p.category,
+    brand: normalizeBrandValue(p.brand||""),
     price: Number(p.price||0),
     oldPrice: p.oldPrice!=null ? Number(p.oldPrice) : null,
     tags: typeof p.tags==="string" ? p.tags.split(",").map(s=>s.trim()).filter(Boolean) : (p.tags||[]),
