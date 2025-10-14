@@ -6,7 +6,7 @@
   const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
   const CASHBACK_EVENT = 'iw-cashback-update';
   const PLACEHOLDER_IMAGE = '/assets/img/product-placeholder.svg';
-  const CHECKOUT_WHATSAPP = '5561998348060';
+  const CHECKOUT_WHATSAPP = '5561992074182';
 
   let cart = [];
   let cashbackInfo = null;
