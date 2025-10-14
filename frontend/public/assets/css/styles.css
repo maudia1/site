@@ -94,7 +94,7 @@ a:hover{opacity:.9}
 .glow{position:absolute;z-index:-1;width:88%;height:88%;border-radius:40px;background:radial-gradient(circle at 40% 20%,rgba(255,255,255,.25),transparent 70%);filter:blur(40px);opacity:.5}
 
 .weekly-promos{padding:90px 0 60px}
-.promo-header{display:grid;gap:14px;margin:0 auto 40px;text-align:center;max-width:600px}
+.promo-header{display:grid;gap:14px;margin:0 0 40px;text-align:left;max-width:520px;justify-items:start;align-items:start}
 .weekly-promos .product-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
 .weekly-promos .product-card{height:100%}
 .home-catalog{padding:40px 0 70px}
@@ -204,7 +204,7 @@ a:hover{opacity:.9}
 
 @media (max-width:600px){
   .weekly-promos{padding:72px 0 48px}
-  .promo-header{text-align:left;gap:12px}
+  .promo-header{text-align:left;gap:12px;margin:0 0 32px}
   .promo-header .lead{margin-top:0}
   .section-title{font-size:1.7rem}
   .home-catalog{padding:34px 0 60px}
