@@ -141,7 +141,8 @@ function normalizeLocalProduct(p){
     images: normalizedImages,
     subtitle: p.subtitle || p.subtitulo || "",
     description: p.description || p.descricao || "",
-    tags
+    tags,
+    specs: (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs : {}
   };
 }
 
@@ -299,7 +300,8 @@ function getFiltered(){
       || includesNormalizedText(p.name, normalizedTerm)
       || includesNormalizedText(p.subtitle, normalizedTerm)
       || includesNormalizedText(p.tags, normalizedTerm)
-      || includesNormalizedText(p.category, normalizedTerm);
+      || includesNormalizedText(p.category, normalizedTerm)
+      || includesNormalizedText(p?.specs?.caseDevice || "", normalizedTerm);
     return inCat && inTxt;
   });
   const s = selectSort.value;
@@ -323,6 +325,8 @@ function cardHTML(p){
   const coverRaw = gallery[0] || p.image || PLACEHOLDER_IMAGE;
   const cover = escapeHtml(coverRaw);
   const cb = computeCashback(priceNow);
+  const caseDevice = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : "";
+  const showCompatibility = caseDevice && String(p.category || "").toLowerCase() === "capas";
   const payload = encodeCartPayload({
     id:p.id,
     name:p.name,
@@ -339,6 +343,7 @@ function cardHTML(p){
     <div class="product-body">
       <h3 class="product-title">${escapeHtml(p.name)}</h3>
       ${p.subtitle ? `<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>` : ""}
+      ${showCompatibility ? `<p class="product-compatibility">Compatível com ${escapeHtml(caseDevice)}</p>` : ""}
       <div class="product-pricing">
         <div class="product-price-line">
           <span class="product-price-label">Preço:</span>

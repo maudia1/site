@@ -59,6 +59,7 @@
         <span id="product-category" class="product-chip" hidden></span>
         <h1 id="product-name">Produto</h1>
         <p id="product-subtitle" class="product-subtitle" hidden></p>
+        <p id="product-case-device" class="product-compatibility" hidden></p>
         <div class="product-price-box">
           <span id="product-price" class="price-now">R$ 0,00</span>
           <span id="product-oldprice" class="price-old" hidden></span>
@@ -126,6 +127,7 @@
   const tagsEl = document.getElementById('product-tags');
   const metaEl = document.querySelector('#product-meta dl');
   const metaSection = document.getElementById('product-meta');
+  const caseDeviceEl = document.getElementById('product-case-device');
   const imgEl = document.getElementById('product-image');
   const thumbsEl = document.getElementById('product-thumbs');
   const ctaEl = document.getElementById('product-cta');
@@ -252,7 +254,20 @@
       tagsEl.hidden = true;
     }
 
+    const specs = (p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs)) ? p.specs : {};
+    const caseDevice = specs.caseDevice || '';
+    const showCaseDevice = caseDevice && String(p.category || '').toLowerCase() === 'capas';
+
+    if(showCaseDevice){
+      caseDeviceEl.textContent = `Compatível com ${caseDevice}`;
+      caseDeviceEl.hidden = false;
+    }else{
+      caseDeviceEl.textContent = '';
+      caseDeviceEl.hidden = true;
+    }
+
     const meta = [];
+    if(showCaseDevice) meta.push(['Compatibilidade', caseDevice]);
     if(p.category) meta.push(['Categoria', p.category]);
     if(normalizedTags.length){
       meta.push(['Tags', normalizedTags.join(', ')]);

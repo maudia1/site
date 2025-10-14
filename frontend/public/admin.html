@@ -117,6 +117,15 @@
             </div>
           </div>
 
+          <div class="row row-single" data-case-device-row hidden>
+            <div class="stack"><label for="caseDevice">Compatibilidade (Capas)</label>
+              <select id="caseDevice" disabled>
+                <option value="">Selecione o modelo</option>
+              </select>
+              <small>Escolha o modelo de iPhone compatível com a capa.</small>
+            </div>
+          </div>
+
           <div class="row">
             <div class="stack"><label>Preço atual (R$)</label><input id="price" type="number" step="0.01" placeholder="299,90"/></div>
             <div class="stack"><label>Preço anterior (opcional)</label><input id="oldPrice" type="number" step="0.01" placeholder="349,90"/></div>
@@ -265,6 +274,19 @@ const fmt=(n)=>Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"
 const maybeFmt=(n)=>Number.isFinite(Number(n))?fmt(Number(n)):"—";
 const FIXED_CATEGORIES=["Fones","Capas","Carregadores","Power Bank","Áudio","Acessórios"];
 const FIXED_BRANDS=["JBL","PRODIGEE","IMAGINE","HREBOS","KIMASTER","SHOKAN","Puregear"];
+const CASE_DEVICE_OPTIONS=[
+  "iPhone 11",
+  "iPhone 12 / 12 Pro",
+  "iPhone 13 / 14 / 15",
+  "iPhone 15 Pro",
+  "iPhone 15 Pro Max",
+  "iPhone 16",
+  "iPhone 16 Pro",
+  "iPhone 16 Pro Max",
+  "iPhone 17",
+  "iPhone 17 Pro",
+  "iPhone 17 Pro Max"
+];
 
 function normalizeGallery(...sources){
   const collected=[];
@@ -292,6 +314,50 @@ function normalizeCategoryValue(value){
   return match || str;
 }
 
+function normalizeCaseDeviceValue(value){
+  if(!value) return "";
+  const str=String(value).trim();
+  if(!str) return "";
+  const match=CASE_DEVICE_OPTIONS.find(opt=>opt.toLowerCase()===str.toLowerCase());
+  return match || str;
+}
+
+function renderCaseDeviceOptions(selected=""){
+  const select=$("#caseDevice");
+  if(!select) return;
+  const normalized=normalizeCaseDeviceValue(selected);
+  const opts=['<option value="">Selecione o modelo</option>'];
+  CASE_DEVICE_OPTIONS.forEach(opt=>{
+    opts.push(`<option value="${esc(opt)}">${esc(opt)}</option>`);
+  });
+  if(normalized && !CASE_DEVICE_OPTIONS.includes(normalized)){
+    opts.push(`<option value="${esc(normalized)}">${esc(normalized)} (modelo antigo)</option>`);
+  }
+  const prev=select.value;
+  select.innerHTML=opts.join('');
+  if(normalized){
+    select.value=normalized;
+  }else if(CASE_DEVICE_OPTIONS.includes(prev)){
+    select.value=prev;
+  }else{
+    select.value="";
+  }
+}
+
+function updateCaseDeviceVisibility(categoryValue=""){
+  const row=document.querySelector('[data-case-device-row]');
+  const select=$("#caseDevice");
+  const normalized=normalizeCategoryValue(categoryValue || $("#category")?.value || "");
+  const isCapas=normalized.toLowerCase()==="capas";
+  if(row){
+    row.hidden=!isCapas;
+  }
+  if(select){
+    select.disabled=!isCapas;
+    select.required=Boolean(isCapas);
+  }
+}
+
 function renderCategoryOptions(selected=""){
   const normalized=normalizeCategoryValue(selected);
   const select=$("#category");
@@ -312,6 +378,7 @@ function renderCategoryOptions(selected=""){
   }else{
     select.value="";
   }
+  updateCaseDeviceVisibility(select.value);
 }
 
 function normalizeBrandValue(value){
@@ -622,6 +689,8 @@ function clearForm(){
   $("#msg").textContent="";
   renderCategoryOptions();
   renderBrandOptions();
+  renderCaseDeviceOptions();
+  updateCaseDeviceVisibility();
   toggleAdvanced(false);
   setMode(null);
   setTimeout(()=>{$("#name")?.focus({preventScroll:true});},0);
@@ -629,6 +698,7 @@ function clearForm(){
 
 $("#product-form").addEventListener("submit",(e)=>{e.preventDefault();save();});
 $("#clear").addEventListener("click",()=>{clearForm();});
+$("#category")?.addEventListener("change",()=>{updateCaseDeviceVisibility();});
 clearForm();
 
 function toggleAdvanced(open){
@@ -641,6 +711,7 @@ async function save(){
   const oldPriceRaw=$("#oldPrice").value;
   const categorySelected=normalizeCategoryValue($("#category").value);
   const brandSelected=normalizeBrandValue($("#brand").value);
+  const caseDeviceSelected=normalizeCaseDeviceValue($("#caseDevice")?.value||"");
   const primaryImage=$("#image").value.trim();
   const secondaryImage=$("#image2").value.trim();
   const tertiaryImage=$("#image3").value.trim();
@@ -654,12 +725,18 @@ async function save(){
     tags: $("#tags").value.split(",").map(s=>s.trim()).filter(Boolean),
     image: gallery[0]||"",
     images: gallery,
-    description: $("#description").value.trim()
+    description: $("#description").value.trim(),
+    specs: {}
   };
 
   if(!body.name){ $("#msg").textContent="Informe o nome do produto."; return; }
   if(!body.category){ $("#msg").textContent="Informe a categoria."; return; }
   if(!FIXED_CATEGORIES.includes(body.category)){ $("#msg").textContent="Escolha uma das categorias disponíveis (Fones, Capas, Carregadores, Power Bank, Áudio ou Acessórios)."; return; }
+  const isCapas=body.category.toLowerCase()==="capas";
+  if(isCapas){
+    if(!caseDeviceSelected){ $("#msg").textContent="Selecione o modelo de iPhone da capa."; return; }
+    body.specs.caseDevice=caseDeviceSelected;
+  }
   if(!body.brand){ $("#msg").textContent="Informe a marca."; return; }
   if(!FIXED_BRANDS.includes(body.brand)){ $("#msg").textContent="Escolha uma das marcas disponíveis."; return; }
   if(!Number.isFinite(body.price) || body.price<=0){ $("#msg").textContent="Preço inválido."; return; }
@@ -668,6 +745,8 @@ async function save(){
   $("#image").value=body.image;
   $("#image2").value=gallery[1]||"";
   $("#image3").value=gallery[2]||"";
+  renderCaseDeviceOptions(caseDeviceSelected);
+  updateCaseDeviceVisibility(body.category);
 
   const method = editingId ? "PUT" : "POST";
   const url = editingId ? `/api/products/${encodeURIComponent(editingId)}` : "/api/products";
@@ -689,8 +768,11 @@ async function fill(id){
   $("#image2").value=gallery[1]||"";
   $("#image3").value=gallery[2]||"";
   $("#description").value=p.description||"";
+  const caseDevice=(p.specs && typeof p.specs==="object" && !Array.isArray(p.specs)) ? p.specs.caseDevice || "" : "";
+  renderCaseDeviceOptions(caseDevice);
   renderCategoryOptions(p.category||"");
   renderBrandOptions(p.brand||"");
+  updateCaseDeviceVisibility(p.category||"");
   setMode(p.id);
   toggleAdvanced(Boolean(tags));
   window.scrollTo({top:0,behavior:"smooth"});
@@ -700,6 +782,9 @@ async function dup(id){
   $("#name").value=(p.name||"")+" (cópia)";
   renderCategoryOptions(p.category||"");
   renderBrandOptions(p.brand||"");
+  const caseDevice=(p.specs && typeof p.specs==="object" && !Array.isArray(p.specs)) ? p.specs.caseDevice || "" : "";
+  renderCaseDeviceOptions(caseDevice);
+  updateCaseDeviceVisibility(p.category||"");
   $("#price").value=p.price ?? ""; $("#oldPrice").value=p.oldPrice ?? "";
   const tags=Array.isArray(p.tags)?p.tags.join(", "):p.tags||"";
   $("#tags").value=tags;
