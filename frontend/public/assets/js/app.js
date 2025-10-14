@@ -86,9 +86,7 @@ async function loadProductsWithFallback(){
 }
 
 async function fetchFromApi(){
-  const q = new URL(location.href).searchParams.get("q") || "";
   const url = new URL("/api/products", location.origin);
-  if (q) url.searchParams.set("q", q);
   url.searchParams.set("_", Date.now());
   const r = await fetch(url.toString());
   if(!r.ok) throw new Error("Falha ao buscar /api/products: "+r.status);
@@ -181,7 +179,55 @@ function toNumber(v){
   const n = Number(normalized);
   return Number.isFinite(n) ? n : NaN;
 }
-function slugify(s){ return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+function normalizeText(value){
+  return String(value ?? "").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function slugify(s){
+  return normalizeText(s).replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+function categorySlug(value){
+  return slugify(value || '');
+}
+function includesNormalizedText(value, term){
+  if(!term) return true;
+  return normalizeText(value).includes(term);
+}
+function findCategoryMatch(param){
+  if(!param) return "";
+  const target = categorySlug(param);
+  if(!target) return "";
+  const option = [...selectCategory.options].find(o => o.value !== "__all" && categorySlug(o.value) === target);
+  return option ? option.value : "";
+}
+function syncUrlCategory(categoryValue, replaceSearch){
+  if(typeof history === 'undefined' || !history.replaceState) return;
+  try{
+    const url = new URL(location.href);
+    const slug = categorySlug(categoryValue);
+    if(slug && categoryValue !== "__all"){
+      url.searchParams.set('category', slug);
+    }else{
+      url.searchParams.delete('category');
+    }
+    if(replaceSearch){
+      url.searchParams.delete('q');
+    }
+    history.replaceState({}, '', url);
+  }catch{}
+}
+function syncUrlSearch(term){
+  if(typeof history === 'undefined' || !history.replaceState) return;
+  try{
+    const url = new URL(location.href);
+    const value = term.trim();
+    if(value){
+      url.searchParams.set('q', value);
+    }else{
+      url.searchParams.delete('q');
+    }
+    history.replaceState({}, '', url);
+  }catch{}
+}
 
 /* === 3) UI === */
 function populateCategories(){
@@ -193,27 +239,67 @@ function populateCategories(){
 }
 
 function applyInitialQuery(){
-  const q = new URL(location.href).searchParams.get("q") || "";
-  if(q){ inputSearch.value = q.replace(/-/g," "); }
-  const match = [...selectCategory.options].find(o=>o.value.toLowerCase()===q?.toLowerCase());
-  if(match) selectCategory.value = match.value;
+  const params = new URL(location.href).searchParams;
+  const rawSearch = (params.get("q") || "").trim();
+  const rawCategory = (params.get("category") || "").trim();
+  const hasCategoryParam = Boolean(rawCategory);
+
+  let matchedCategory = findCategoryMatch(rawCategory);
+  let matchedFromSearch = false;
+
+  if (!matchedCategory && rawSearch) {
+    const fallbackMatch = findCategoryMatch(rawSearch);
+    if (fallbackMatch) {
+      matchedCategory = fallbackMatch;
+      matchedFromSearch = true;
+    }
+  }
+
+  if (rawSearch && (!matchedCategory || hasCategoryParam)) {
+    inputSearch.value = rawSearch.replace(/-/g, " ");
+  } else {
+    inputSearch.value = "";
+  }
+
+  if (matchedCategory) {
+    selectCategory.value = matchedCategory;
+  } else {
+    selectCategory.value = "__all";
+    if(rawCategory){
+      syncUrlCategory("__all", false);
+    }
+  }
+
+  if (matchedCategory) {
+    syncUrlCategory(matchedCategory, matchedFromSearch && !hasCategoryParam);
+  }
 }
 
 function bind(){
-  inputSearch.addEventListener("input", debounce(render,200));
-  selectCategory.addEventListener("change", render);
+  inputSearch.addEventListener("input", debounce(()=>{
+    syncUrlSearch(inputSearch.value.trim());
+    render();
+  },200));
+  selectCategory.addEventListener("change", ()=>{
+    syncUrlCategory(selectCategory.value, false);
+    render();
+  });
   selectSort.addEventListener("change", render);
 }
 
 function getFiltered(){
-  const term = inputSearch.value.trim().toLowerCase();
+  const termRaw = inputSearch.value.trim();
+  const normalizedTerm = normalizeText(termRaw);
   const cat = selectCategory.value;
+  const selectedCatSlug = cat === "__all" ? "" : categorySlug(cat);
   let list = PRODUCTS.filter(p=>{
-    const inCat = (cat==="__all") || (p.category===cat);
-    const inTxt = !term
-      || p.name.toLowerCase().includes(term)
-      || (p.subtitle||"").toLowerCase().includes(term)
-      || (p.tags||"").toLowerCase().includes(term);
+    const productCatSlug = categorySlug(p.category);
+    const inCat = !selectedCatSlug || (productCatSlug === selectedCatSlug);
+    const inTxt = !normalizedTerm
+      || includesNormalizedText(p.name, normalizedTerm)
+      || includesNormalizedText(p.subtitle, normalizedTerm)
+      || includesNormalizedText(p.tags, normalizedTerm)
+      || includesNormalizedText(p.category, normalizedTerm);
     return inCat && inTxt;
   });
   const s = selectSort.value;

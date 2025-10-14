@@ -130,6 +130,13 @@ const upload = multer({
 
 const toCents = (n) => Math.round(Number(n) * 100);
 const fromCents = (n) => (Number(n) / 100);
+const normalizeText = (value) => String(value ?? "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase();
+const slugify = (value) => normalizeText(value)
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
 const safeJsonArray = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -203,8 +210,8 @@ async function supabaseDeleteProduct(id) {
 
 /* LISTAR */
 app.get("/api/products", (req, res) => {
-  const q = (req.query.q || "").toLowerCase();
-  const cat = req.query.category || "";
+  const q = normalizeText(req.query.q || "");
+  const cat = slugify(req.query.category || "");
   const rows = db.prepare("SELECT * FROM products ORDER BY createdAt DESC").all();
 
   let list = rows.map(row => ({
@@ -216,13 +223,15 @@ app.get("/api/products", (req, res) => {
   }));
 
   if (q) {
+    const matches = (value) => normalizeText(value).includes(q);
     list = list.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      (p.subtitle || "").toLowerCase().includes(q) ||
-      (p.tags || "").toLowerCase().includes(q)
+      matches(p.name) ||
+      matches(p.subtitle) ||
+      matches(p.tags) ||
+      matches(p.category)
     );
   }
-  if (cat) list = list.filter(p => p.category === cat);
+  if (cat) list = list.filter(p => slugify(p.category) === cat);
 
   res.json(list);
 });
