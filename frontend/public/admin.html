@@ -263,8 +263,8 @@
 const $=(s,c=document)=>c.querySelector(s);
 const fmt=(n)=>Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const maybeFmt=(n)=>Number.isFinite(Number(n))?fmt(Number(n)):"—";
-const FIXED_CATEGORIES=["Fones","Capas","Carregadores","Power Bank","Áudio"];
-const FIXED_BRANDS=["JBL","PRODIGEE","IMAGINE","HREBOS","KIMASTER","SHOKAN"];
+const FIXED_CATEGORIES=["Fones","Capas","Carregadores","Power Bank","Áudio","Acessórios"];
+const FIXED_BRANDS=["JBL","PRODIGEE","IMAGINE","HREBOS","KIMASTER","SHOKAN","Puregear"];
 
 function normalizeGallery(...sources){
   const collected=[];
@@ -659,7 +659,7 @@ async function save(){
 
   if(!body.name){ $("#msg").textContent="Informe o nome do produto."; return; }
   if(!body.category){ $("#msg").textContent="Informe a categoria."; return; }
-  if(!FIXED_CATEGORIES.includes(body.category)){ $("#msg").textContent="Escolha uma das categorias disponíveis (Fones, Capas, Carregadores, Power Bank ou Áudio)."; return; }
+  if(!FIXED_CATEGORIES.includes(body.category)){ $("#msg").textContent="Escolha uma das categorias disponíveis (Fones, Capas, Carregadores, Power Bank, Áudio ou Acessórios)."; return; }
   if(!body.brand){ $("#msg").textContent="Informe a marca."; return; }
   if(!FIXED_BRANDS.includes(body.brand)){ $("#msg").textContent="Escolha uma das marcas disponíveis."; return; }
   if(!Number.isFinite(body.price) || body.price<=0){ $("#msg").textContent="Preço inválido."; return; }
