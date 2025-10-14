@@ -305,7 +305,7 @@
             <button type="button" data-action="increase" aria-label="Aumentar quantidade">+</button>
           </div>
         </div>
-        <button class="cart-item-remove" type="button" data-action="remove" aria-label="Remover item">&times;</button>
+        <button class="cart-item-remove" type="button" data-action="remove" aria-label="Remover item">X</button>
       </li>`;
   }
 
