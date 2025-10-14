@@ -137,29 +137,36 @@ if(catSections.length && catChips.length){
     }
   ];
 
-  const featuredFromApi = await loadFeaturedFromApi();
-  const featuredToShow = featuredFromApi.length ? featuredFromApi.slice(0,3) : fallbackProducts.slice(0,3);
+  const [featuredFromApi, curated, catalog] = await Promise.all([
+    loadFeaturedFromApi(),
+    loadHomeCurated(),
+    loadCatalogFromApi()
+  ]);
+
+  const hasAnyServerProduct = featuredFromApi.length || curated.length || catalog.length;
+
+  const featuredToShow = featuredFromApi.length
+    ? featuredFromApi.slice(0,3)
+    : (!hasAnyServerProduct ? fallbackProducts.slice(0,3) : []);
 
   featuredList = featuredToShow;
   renderFeatured();
 
   if(catalogGrid){
     const featuredIds = new Set(featuredToShow.map(p=>p.id));
-    const curated = await loadHomeCurated();
-    const baseList = Array.isArray(curated) && curated.length ? curated : await loadCatalogFromApi();
+    const baseList = curated.length ? curated : catalog;
     let catalogToShow = baseList.filter(p=>!featuredIds.has(p.id));
 
-    if(!catalogToShow.length){
+    if(!catalogToShow.length && !baseList.length && !hasAnyServerProduct){
       catalogToShow = fallbackProducts.filter(p=>!featuredIds.has(p.id));
-    }else{
-      const fillers = fallbackProducts.filter(p=>!featuredIds.has(p.id) && !catalogToShow.some(item=>item.id===p.id));
-      catalogToShow = catalogToShow.concat(fillers);
     }
 
     catalogToShow = catalogToShow.slice(0,6);
 
     catalogList = catalogToShow;
-    catalogEmptyHtml = '<p class="muted">Cadastre produtos no painel para vê-los aqui.</p>';
+    catalogEmptyHtml = hasAnyServerProduct
+      ? '<p class="muted">Nenhum produto selecionado para a home.</p>'
+      : '<p class="muted">Cadastre produtos no painel para vê-los aqui.</p>';
     renderCatalog();
   }
 
