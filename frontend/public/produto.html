@@ -13,19 +13,29 @@
       <img class="brand-logo" src="/assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>
       <span class="brand-text" aria-hidden="true">iWanted</span>
     </a>
-    <nav class="nav" aria-label="Navega&ccedil;&atilde;o principal">
-      <a href="/">In&iacute;cio</a>
-      <a href="/catalogo">Produtos</a>
-      <a href="/#contato">Contato</a>
-    </nav>
-    <div class="nav-actions">
-      <a class="icon-btn" href="/catalogo" aria-label="Buscar" title="Buscar">&#128269;</a>
-      <button class="icon-btn" type="button" data-cart-open aria-label="Carrinho" title="Carrinho">
-        &#128722;
-        <span class="cart-count" data-cart-count hidden>0</span>
-      </button>
+    <div class="nav-shell">
+      <nav id="primary-nav" class="nav" data-nav-menu aria-label="Navega&ccedil;&atilde;o principal">
+        <a href="/">In&iacute;cio</a>
+        <a href="/catalogo">Produtos</a>
+        <a href="/#contato">Contato</a>
+      </nav>
+      <div class="nav-utilities">
+        <div class="nav-actions">
+          <a class="icon-btn" href="/catalogo" aria-label="Buscar" title="Buscar">&#128269;</a>
+          <button class="icon-btn" type="button" data-cart-open aria-label="Carrinho" title="Carrinho">
+            &#128722;
+            <span class="cart-count" data-cart-count hidden>0</span>
+          </button>
+        </div>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-nav" aria-expanded="false" aria-label="Abrir menu de navega&ccedil;&atilde;o">
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+        </button>
+      </div>
     </div>
   </div>
+  <div class="nav-overlay" data-nav-overlay hidden></div>
 </header>
 
 <main class="product-page">
@@ -95,6 +105,7 @@
   </div>
 </footer>
 
+<script src="/assets/js/nav.js" defer></script>
 <script src="/assets/js/cart.js" defer></script>
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();

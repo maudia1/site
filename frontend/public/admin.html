@@ -2,6 +2,7 @@
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>iWanted — Admin</title>
 <link rel="stylesheet" href="assets/css/styles.css"/>
+<script src="assets/js/nav.js" defer></script>
 <style>
   .admin-wrap{padding:24px 0}
   .admin-grid{display:grid;grid-template-columns:1fr;gap:18px}
@@ -56,10 +57,28 @@
   .promo-status{font-size:.9rem;color:rgba(255,255,255,.7)}
 </style>
 </head><body>
-<header class="iw-header"><div class="iw-container">
-  <a class="brand" href="/" aria-label="iWanted - In&iacute;cio">`r`n  <img class="brand-logo" src="assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>`r`n  <span class="brand-text" aria-hidden="true">iWanted</span>`r`n</a>
-  <nav class="nav"><a href="/catalogo">Catálogo</a></nav>
-</div></header>
+<header class="iw-header">
+  <div class="iw-container">
+    <a class="brand" href="/" aria-label="iWanted - In&iacute;cio">
+      <img class="brand-logo" src="assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>
+      <span class="brand-text" aria-hidden="true">iWanted</span>
+    </a>
+    <div class="nav-shell">
+      <nav id="primary-nav" class="nav" data-nav-menu aria-label="Navega&ccedil;&atilde;o principal">
+        <a href="/catalogo">Cat&aacute;logo</a>
+      </nav>
+      <div class="nav-utilities">
+        <div class="nav-actions" hidden></div>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-nav" aria-expanded="false" aria-label="Abrir menu de navega&ccedil;&atilde;o">
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="nav-overlay" data-nav-overlay hidden></div>
+</header>
 
 <main class="admin-wrap">
   <div class="iw-container admin-grid">
