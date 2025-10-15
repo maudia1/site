@@ -32,6 +32,16 @@
   @media(min-width:720px){.media-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
   .upload-grid{display:grid;gap:12px}
   @media(min-width:720px){.upload-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .variant-section{display:grid;gap:14px;padding:16px;border-radius:14px;background:rgba(15,23,42,.48);border:1px solid rgba(96,165,250,.2)}
+  .variant-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .variant-header h4{margin:0;font-size:1.05rem}
+  .variant-list{display:grid;gap:16px}
+  .variant-item{display:grid;gap:12px;padding:16px;border-radius:12px;background:rgba(15,23,42,.6);border:1px solid rgba(148,163,184,.22)}
+  .variant-item-header{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .variant-grid{display:grid;gap:12px}
+  @media(min-width:720px){.variant-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .variant-empty{font-size:.9rem;color:rgba(226,232,240,.72)}
+  .btn.small{padding:6px 10px;font-size:.85rem}
   .form-note{font-size:.82rem;color:rgba(226,232,240,.72)}
   .actions{display:flex;justify-content:flex-end}
   details.advanced{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;background:rgba(255,255,255,.02)}
@@ -200,6 +210,22 @@
                 <small>Mostrada na galeria interna.</small>
               </div>
             </div>
+            <div class="stack" data-primary-color-shell hidden>
+              <label for="primaryColor">Cor das fotos acima (opcional)</label>
+              <select id="primaryColor"></select>
+              <small>Ajuda a identificar a cor correspondente ao conjunto de fotos principal.</small>
+            </div>
+            <div class="variant-section" data-variant-shell hidden>
+              <div class="variant-header">
+                <div>
+                  <h4>Variantes de cor adicionais</h4>
+                  <p class="form-note">Selecione uma cor e adicione até três imagens para cada variante adicional.</p>
+                </div>
+                <button type="button" class="btn btn-ghost small" id="addColorVariant">Adicionar cor</button>
+              </div>
+              <div class="variant-empty" data-color-variants-empty>Nenhuma cor adicional adicionada.</div>
+              <div class="variant-list" data-color-variants></div>
+            </div>
             <div class="upload-grid">
               <div class="stack">
                 <label for="file-main">Upload da foto principal</label>
@@ -329,6 +355,21 @@ const CASE_DEVICE_OPTIONS=[
   "iPhone 17 Pro",
   "iPhone 17 Pro Max"
 ];
+const COLOR_OPTIONS=[
+  "Preto",
+  "Branco",
+  "Azul",
+  "Vermelho",
+  "Verde",
+  "Amarelo",
+  "Roxo",
+  "Rosa",
+  "Cinza",
+  "Prata",
+  "Dourado",
+  "Marrom",
+  "Transparente"
+];
 
 function normalizeGallery(...sources){
   const collected=[];
@@ -398,6 +439,232 @@ function updateCaseDeviceVisibility(categoryValue=""){
     select.disabled=!isCapas;
     select.required=Boolean(isCapas);
   }
+}
+
+function normalizeColorValue(value){
+  if(!value) return "";
+  const str=String(value).trim();
+  if(!str) return "";
+  const match=COLOR_OPTIONS.find(color=>color.toLowerCase()===str.toLowerCase());
+  return match || "";
+}
+
+function colorOptionsHtml(){
+  const opts=['<option value="">Selecione</option>'];
+  COLOR_OPTIONS.forEach(color=>{
+    opts.push(`<option value="${esc(color)}">${esc(color)}</option>`);
+  });
+  return opts.join('');
+}
+
+function renderPrimaryColorSelect(selected=""){
+  const select=$("#primaryColor");
+  if(!select) return;
+  const normalized=normalizeColorValue(selected);
+  select.innerHTML=colorOptionsHtml();
+  select.value=normalized || "";
+}
+
+const colorVariantState={ primaryColor:"", variants:[] };
+let colorVariantIdCounter=0;
+let colorVariantsEnabled=false;
+
+function nextColorVariantId(){
+  colorVariantIdCounter+=1;
+  return `cv-${Date.now()}-${colorVariantIdCounter}`;
+}
+
+function ensureVariantImages(images){
+  const arr=Array.isArray(images)?images.slice(0,3):[];
+  while(arr.length<3){ arr.push(""); }
+  return arr.map(v=>String(v??"").trim());
+}
+
+function renderColorVariants(){
+  const container=document.querySelector('[data-color-variants]');
+  const empty=document.querySelector('[data-color-variants-empty]');
+  if(!container) return;
+  if(!colorVariantState.variants.length){
+    container.innerHTML="";
+    if(empty) empty.hidden=false;
+    return;
+  }
+  if(empty) empty.hidden=true;
+  const items=colorVariantState.variants.map((variant,index)=>{
+    const variantLabel=variant.color?`Cor ${esc(variant.color)}`:`Cor adicional ${index+1}`;
+    const id=esc(variant.id);
+    const inputs=ensureVariantImages(variant.images);
+    variant.images=inputs.slice();
+    return `
+      <div class="variant-item" data-variant-id="${id}">
+        <div class="variant-item-header">
+          <div class="stack" style="flex:1 1 220px">
+            <label>Cor da variante</label>
+            <select data-role="variant-color">${colorOptionsHtml()}</select>
+          </div>
+          <button type="button" class="btn btn-ghost small" data-role="remove-variant">Remover</button>
+        </div>
+        <div class="variant-grid">
+          <div class="stack">
+            <label>Foto principal (${variantLabel})</label>
+            <input data-role="variant-image" data-image-index="0" placeholder="/uploads/arquivo-${index+1}-1.png" value="${esc(inputs[0])}"/>
+            <small>Imagem destacada desta cor.</small>
+          </div>
+          <div class="stack">
+            <label>Foto extra 1 (${variantLabel})</label>
+            <input data-role="variant-image" data-image-index="1" placeholder="/uploads/arquivo-${index+1}-2.png" value="${esc(inputs[1])}"/>
+            <small>Mostrada na galeria interna.</small>
+          </div>
+          <div class="stack">
+            <label>Foto extra 2 (${variantLabel})</label>
+            <input data-role="variant-image" data-image-index="2" placeholder="/uploads/arquivo-${index+1}-3.png" value="${esc(inputs[2])}"/>
+            <small>Mostrada na galeria interna.</small>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  container.innerHTML=items;
+  container.querySelectorAll('[data-role="variant-color"]').forEach(select=>{
+    const parent=select.closest('[data-variant-id]');
+    if(!parent) return;
+    const variant=colorVariantState.variants.find(v=>v.id===parent.dataset.variantId);
+    if(!variant) return;
+    const normalized=normalizeColorValue(variant.color);
+    select.value=normalized || "";
+    select.addEventListener('change',e=>{
+      const val=normalizeColorValue(e.target.value);
+      variant.color=val;
+      e.target.value=val || "";
+    });
+  });
+  container.querySelectorAll('[data-role="variant-image"]').forEach(input=>{
+    const parent=input.closest('[data-variant-id]');
+    if(!parent) return;
+    const variant=colorVariantState.variants.find(v=>v.id===parent.dataset.variantId);
+    if(!variant) return;
+    const index=Number(input.dataset.imageIndex||0);
+    if(!Array.isArray(variant.images)) variant.images=["","",""];
+    variant.images=ensureVariantImages(variant.images);
+    input.addEventListener('input',e=>{
+      const val=String(e.target.value||"").trim();
+      variant.images[index]=val;
+    });
+  });
+  container.querySelectorAll('[data-role="remove-variant"]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const parent=btn.closest('[data-variant-id]');
+      if(!parent) return;
+      colorVariantState.variants=colorVariantState.variants.filter(v=>v.id!==parent.dataset.variantId);
+      renderColorVariants();
+    });
+  });
+}
+
+function addColorVariant(data){
+  if(!colorVariantsEnabled) return;
+  const base={
+    id:nextColorVariantId(),
+    color:normalizeColorValue(data?.color||""),
+    images:ensureVariantImages(data?.images||["","",""])
+  };
+  colorVariantState.variants.push(base);
+  renderColorVariants();
+}
+
+function resetColorVariants(){
+  colorVariantState.primaryColor="";
+  colorVariantState.variants=[];
+  colorVariantIdCounter=0;
+  renderPrimaryColorSelect("");
+  renderColorVariants();
+}
+
+function setVariantAvailability(enabled){
+  const shell=document.querySelector('[data-variant-shell]');
+  const primaryShell=document.querySelector('[data-primary-color-shell]');
+  const addBtn=document.getElementById('addColorVariant');
+  const primarySelect=document.getElementById('primaryColor');
+  if(shell){
+    shell.hidden=!enabled;
+  }
+  if(primaryShell){
+    primaryShell.hidden=!enabled;
+  }
+  if(addBtn){
+    addBtn.disabled=!enabled;
+  }
+  if(primarySelect){
+    primarySelect.disabled=!enabled;
+    if(!enabled){
+      primarySelect.value="";
+    }
+  }
+  if(!enabled && colorVariantsEnabled){
+    resetColorVariants();
+  }
+  if(enabled && !colorVariantsEnabled){
+    renderPrimaryColorSelect(colorVariantState.primaryColor||"");
+    renderColorVariants();
+  }
+  colorVariantsEnabled=enabled;
+}
+
+function shouldEnableColorVariants(){
+  const gallery=normalizeGallery(
+    document.getElementById('image')?.value,
+    document.getElementById('image2')?.value,
+    document.getElementById('image3')?.value
+  ).slice(0,3);
+  return gallery.length>0;
+}
+
+function updateVariantAvailability(){
+  setVariantAvailability(shouldEnableColorVariants());
+}
+
+function loadColorVariantsFromSpecs(specs){
+  const colorsSpec=(specs && typeof specs==="object" && !Array.isArray(specs)) ? specs.colors : null;
+  colorVariantState.primaryColor="";
+  colorVariantState.variants=[];
+  colorVariantIdCounter=0;
+  if(colorsSpec && typeof colorsSpec==="object" && !Array.isArray(colorsSpec)){
+    const primary=normalizeColorValue(colorsSpec.primary || colorsSpec.base || colorsSpec.main || "");
+    if(primary){
+      colorVariantState.primaryColor=primary;
+    }
+    const variants=Array.isArray(colorsSpec.variants)?colorsSpec.variants:[];
+    variants.forEach(item=>{
+      const entry={
+        id:nextColorVariantId(),
+        color:normalizeColorValue(item?.color||""),
+        images:ensureVariantImages(normalizeGallery(item?.images||[],item?.image||[]))
+      };
+      colorVariantState.variants.push(entry);
+    });
+  }
+  renderPrimaryColorSelect(colorVariantState.primaryColor||"");
+  renderColorVariants();
+  updateVariantAvailability();
+}
+
+function buildColorSpec(){
+  const select=$("#primaryColor");
+  const primary=normalizeColorValue(select?.value || colorVariantState.primaryColor || "");
+  const variants=colorVariantState.variants.map(variant=>{
+    const images=normalizeGallery(...ensureVariantImages(variant.images)).slice(0,3);
+    return {
+      color:normalizeColorValue(variant.color),
+      images
+    };
+  }).filter(entry=>entry.color && entry.images.length);
+  if(primary || variants.length){
+    return {
+      primary:primary || null,
+      variants
+    };
+  }
+  return null;
 }
 
 function renderCategoryOptions(selected=""){
@@ -731,6 +998,7 @@ async function upload(file,targetId){
     const j=await r.json();
     target.value=j.url||"";
     target.dispatchEvent(new Event('input',{bubbles:true}));
+    updateVariantAvailability();
     if(msg) msg.textContent="Upload OK: "+(j.url||"");
     try{ target.focus({preventScroll:true}); }catch{ try{ target.focus(); }catch{} }
   }catch(err){
@@ -775,6 +1043,8 @@ function clearForm(){
   renderCategoryOptions();
   renderBrandOptions();
   renderCaseDeviceOptions();
+  resetColorVariants();
+  setVariantAvailability(false);
   updateCaseDeviceVisibility();
   toggleAdvanced(false);
   setMode(null);
@@ -784,7 +1054,20 @@ function clearForm(){
 $("#product-form").addEventListener("submit",(e)=>{e.preventDefault();save();});
 $("#clear").addEventListener("click",()=>{clearForm();});
 $("#category")?.addEventListener("change",()=>{updateCaseDeviceVisibility();});
+$("#addColorVariant")?.addEventListener("click",()=>{addColorVariant();});
+$("#primaryColor")?.addEventListener("change",(e)=>{
+  const normalized=normalizeColorValue(e.target.value);
+  colorVariantState.primaryColor=normalized || "";
+  e.target.value=normalized || "";
+});
+["image","image2","image3"].forEach(id=>{
+  const input=document.getElementById(id);
+  if(input){
+    input.addEventListener('input',()=>{updateVariantAvailability();});
+  }
+});
 clearForm();
+updateVariantAvailability();
 
 function toggleAdvanced(open){
   const adv=document.querySelector("details.advanced");
@@ -801,6 +1084,11 @@ async function save(){
   const secondaryImage=$("#image2").value.trim();
   const tertiaryImage=$("#image3").value.trim();
   const gallery=normalizeGallery(primaryImage,secondaryImage,tertiaryImage).slice(0,3);
+  const primaryColorSelected=normalizeColorValue($("#primaryColor")?.value || colorVariantState.primaryColor || "");
+  colorVariantState.primaryColor=primaryColorSelected || "";
+  if($("#primaryColor")){
+    $("#primaryColor").value=primaryColorSelected || "";
+  }
   const body={
     name: $("#name").value.trim(),
     category: categorySelected,
@@ -821,6 +1109,18 @@ async function save(){
   if(isCapas){
     if(!caseDeviceSelected){ $("#msg").textContent="Selecione o modelo de iPhone da capa."; return; }
     body.specs.caseDevice=caseDeviceSelected;
+  }
+  if(colorVariantState.variants.length){
+    for(const variant of colorVariantState.variants){
+      const color=normalizeColorValue(variant.color);
+      const variantGallery=normalizeGallery(...ensureVariantImages(variant.images)).slice(0,3);
+      if(!color){ $("#msg").textContent="Selecione uma cor para cada variante adicional."; return; }
+      if(!variantGallery.length){ $("#msg").textContent="Adicione pelo menos uma imagem para cada cor adicional."; return; }
+    }
+  }
+  const colorSpec=buildColorSpec();
+  if(colorSpec){
+    body.specs.colors=colorSpec;
   }
   if(!body.brand){ $("#msg").textContent="Informe a marca."; return; }
   if(!FIXED_BRANDS.includes(body.brand)){ $("#msg").textContent="Escolha uma das marcas disponíveis."; return; }
@@ -858,6 +1158,7 @@ async function fill(id){
   renderCategoryOptions(p.category||"");
   renderBrandOptions(p.brand||"");
   updateCaseDeviceVisibility(p.category||"");
+  loadColorVariantsFromSpecs(p.specs);
   setMode(p.id);
   toggleAdvanced(Boolean(tags));
   window.scrollTo({top:0,behavior:"smooth"});
@@ -878,6 +1179,7 @@ async function dup(id){
   $("#image2").value=gallery[1]||"";
   $("#image3").value=gallery[2]||"";
   $("#description").value=p.description||"";
+  loadColorVariantsFromSpecs(p.specs);
   setMode(null);
   toggleAdvanced(Boolean(tags));
   window.scrollTo({top:0,behavior:"smooth"});
