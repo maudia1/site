@@ -43,6 +43,25 @@
   th,td{border-top:1px solid rgba(255,255,255,.08);padding:10px;text-align:left}
   .right{text-align:right}
   .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .products-toolbar{flex-direction:column;align-items:flex-start;gap:12px}
+  .products-toolbar input{width:100%;max-width:420px}
+  #products-card{grid-column:1/-1}
+  #flt{background:rgba(15,23,42,.6);border:1px solid rgba(148,163,184,.32);padding:12px 14px;border-radius:12px;color:#f8fafc;font-size:1rem}
+  .product-groups{display:grid;gap:28px;margin-top:12px}
+  .product-group{display:grid;gap:18px}
+  .product-group-header{display:flex;flex-direction:column;gap:6px}
+  .product-group-header h3{margin:0;font-size:1.4rem}
+  .product-count{font-size:.9rem;color:rgba(226,232,240,.7)}
+  .product-grid{display:grid;gap:16px}
+  .product-details{display:grid;gap:8px}
+  .product-item{display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:18px;background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.22);box-shadow:0 24px 48px rgba(15,23,42,.45)}
+  .product-item h4{margin:0;font-size:1.2rem}
+  .product-meta{margin:0;font-size:.95rem;color:rgba(226,232,240,.75)}
+  .product-price{margin:0;font-size:1.45rem;font-weight:700;color:#facc15}
+  .product-price .old-price{margin-left:10px;font-size:.95rem;color:rgba(226,232,240,.55);text-decoration:line-through;font-weight:400}
+  .product-tags{margin:0;font-size:.85rem;color:rgba(226,232,240,.65)}
+  .product-actions{display:flex;flex-wrap:wrap;gap:10px}
+  .product-actions .btn{flex:1 1 140px;min-width:120px}
   .muted.small{font-size:.9rem}
   pre.log{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);padding:10px;border-radius:10px;max-height:200px;overflow:auto}
   .promo-form{display:grid;gap:14px;margin-top:14px}
@@ -70,6 +89,13 @@
     .promo-actions{flex-direction:column;align-items:stretch}
     .promo-actions .btn{width:100%}
     #product-card h2{font-size:1.5rem}
+  }
+  @media(min-width:640px){
+    .product-group-header{flex-direction:row;align-items:baseline;justify-content:space-between}
+  }
+  @media(min-width:720px){
+    .products-toolbar{flex-direction:row;align-items:center;gap:16px}
+    .product-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
   }
 </style>
 </head><body>
@@ -272,15 +298,13 @@
     </section>
 
     <!-- === Lista === -->
-    <section class="card">
-      <div class="toolbar">
+    <section class="card" id="products-card">
+      <div class="toolbar products-toolbar">
         <h2>Produtos</h2>
-        <input id="flt" placeholder="Buscar por nome, categoria ou tag" />
+        <input id="flt" type="search" placeholder="Buscar por nome, categoria ou tag" aria-label="Buscar produtos" autocomplete="off" />
       </div>
-      <div class="table-wrapper">
-        <table id="tbl"><thead><tr>
-          <th>Nome</th><th>Marca</th><th>Categoria</th><th class="right">Preço</th><th>Ações</th>
-        </tr></thead><tbody></tbody></table>
+      <div class="product-groups" id="product-groups">
+        <p class="muted small">Carregando produtos…</p>
       </div>
     </section>
   </div>
@@ -591,17 +615,60 @@ async function list(){
   const r=await fetch("/api/products");
   const data=await r.json();
   window._serverProducts = data; // cache para sync
-  const tb=$("#tbl tbody"), q=($("#flt").value||"").toLowerCase();
-  if(tb){
-    tb.innerHTML=data.filter(p=>{
-      return !q || p.name.toLowerCase().includes(q) || (p.category||"").toLowerCase().includes(q) || (p.brand||"").toLowerCase().includes(q) || (p.tags||"").toLowerCase().includes(q);
-    }).map(p=>`
-     <tr><td>${esc(p.name)}</td><td>${esc(p.brand||"")}</td><td>${esc(p.category)}</td><td class="right">${fmt(p.price)}</td>
-     <td>
-       <button class="btn" onclick="fill('${p.id}')">Editar</button>
-       <button class="btn" onclick="dup('${p.id}')">Duplicar</button>
-       <button class="btn" onclick="delp('${p.id}')">Excluir</button>
-     </td></tr>`).join("");
+  const input=$("#flt");
+  const searchRaw=String(input?.value||"");
+  const q=searchRaw.toLowerCase().trim();
+  const filtered=data.filter(p=>{
+    if(!q) return true;
+    const tagsValue=Array.isArray(p.tags)?p.tags.join(", "):p.tags;
+    return [p.name,p.category,p.brand,tagsValue].some(value=>String(value||"").toLowerCase().includes(q));
+  });
+  const wrap=$("#product-groups");
+  if(wrap){
+    if(!filtered.length){
+      wrap.innerHTML=`<p class="muted small">${q?`Nenhum produto encontrado para "${esc(searchRaw)}".`:"Nenhum produto cadastrado ainda."}</p>`;
+    }else{
+      const grouped=new Map();
+      filtered.forEach(p=>{
+        const categoryLabel=normalizeCategoryValue(p.category||"")||"Sem categoria";
+        if(!grouped.has(categoryLabel)) grouped.set(categoryLabel,[]);
+        grouped.get(categoryLabel).push(p);
+      });
+      const preferred=FIXED_CATEGORIES.filter(cat=>grouped.has(cat));
+      const dynamic=Array.from(grouped.keys()).filter(cat=>!FIXED_CATEGORIES.includes(cat)).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+      const ordered=[...preferred,...dynamic];
+      wrap.innerHTML=ordered.map(cat=>{
+        const items=[...(grouped.get(cat)||[])].sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));
+        const cards=items.map(p=>{
+          const tagText=Array.isArray(p.tags)?p.tags.join(", "):String(p.tags||"");
+          const oldPrice=Number.isFinite(Number(p.oldPrice)) && Number(p.oldPrice)>0 ? fmt(p.oldPrice) : "";
+          return `
+            <article class="product-item" data-product-id="${esc(p.id)}">
+              <div class="product-details">
+                <h4>${esc(p.name)}</h4>
+                <p class="product-meta">${esc(p.brand||"Sem marca")}</p>
+                <p class="product-price">${fmt(p.price)}${oldPrice?` <span class="old-price">${oldPrice}</span>`:""}</p>
+                ${tagText?`<p class="product-tags">Tags: ${esc(tagText)}</p>`:""}
+              </div>
+              <div class="product-actions">
+                <button class="btn" onclick="fill('${p.id}')">Editar</button>
+                <button class="btn" onclick="dup('${p.id}')">Duplicar</button>
+                <button class="btn" onclick="delp('${p.id}')">Excluir</button>
+              </div>
+            </article>`;
+        }).join("");
+        return `
+          <section class="product-group">
+            <div class="product-group-header">
+              <h3>${esc(cat)}</h3>
+              <span class="product-count">${items.length} produto${items.length===1?"":"s"}</span>
+            </div>
+            <div class="product-grid">
+              ${cards}
+            </div>
+          </section>`;
+      }).join("");
+    }
   }
   refreshPromoOptions();
   refreshHomeOptions();
