@@ -2,6 +2,8 @@ const CART_ADD_EVENT = 'iw-cart-add';
 const $ = (s, c=document)=>c.querySelector(s);
 const grid = $("#product-grid"), countEl=$("#count");
 const inputSearch=$("#search"), selectCategory=$("#category"), selectSort=$("#sort");
+const selectCaseDevice=$("#caseDeviceFilter");
+const caseFilterControl=document.querySelector('[data-case-filter]');
 
 const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const PLACEHOLDER_IMAGE = "/assets/img/product-placeholder.svg";
@@ -9,6 +11,7 @@ const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
 let cashbackInfo = readCashbackFromStorage();
 let PRODUCTS = [];
+const CAPAS_SLUG = categorySlug('Capas');
 
 document.addEventListener('click', (event)=>{
   const btn = event.target.closest('[data-product-cart]');
@@ -61,6 +64,7 @@ window.addEventListener('storage', (event)=>{
 async function init(){
   await loadProductsWithFallback();
   populateCategories();
+  populateCaseDeviceOptions();
   applyInitialQuery();
   bind();
   render();
@@ -189,6 +193,9 @@ function slugify(s){
 function categorySlug(value){
   return slugify(value || '');
 }
+function isCapasCategory(value){
+  return categorySlug(value) === CAPAS_SLUG;
+}
 function includesNormalizedText(value, term){
   if(!term) return true;
   return normalizeText(value).includes(term);
@@ -199,6 +206,29 @@ function findCategoryMatch(param){
   if(!target) return "";
   const option = [...selectCategory.options].find(o => o.value !== "__all" && categorySlug(o.value) === target);
   return option ? option.value : "";
+}
+function caseDeviceSlug(value){
+  return slugify(value || '');
+}
+function findCaseDeviceMatch(param){
+  if(!param || !selectCaseDevice) return "";
+  const target = caseDeviceSlug(param);
+  if(!target) return "";
+  const option = [...selectCaseDevice.options].find(o => o.value !== "__all" && caseDeviceSlug(o.value) === target);
+  return option ? option.value : "";
+}
+function syncUrlCaseDevice(value){
+  if(typeof history === 'undefined' || !history.replaceState) return;
+  try{
+    const url = new URL(location.href);
+    const slug = caseDeviceSlug(value);
+    if(slug && value !== "__all"){
+      url.searchParams.set('caseDevice', slug);
+    }else{
+      url.searchParams.delete('caseDevice');
+    }
+    history.replaceState({}, '', url);
+  }catch{}
 }
 function syncUrlCategory(categoryValue, replaceSearch){
   if(typeof history === 'undefined' || !history.replaceState) return;
@@ -238,21 +268,69 @@ function populateCategories(){
     const o=document.createElement("option"); o.value=c; o.textContent=c; selectCategory.appendChild(o);
   });
 }
+function collectCaseDeviceOptions(){
+  const seen = new Set();
+  const list = [];
+  PRODUCTS.forEach(p=>{
+    if(!p || !isCapasCategory(p.category)) return;
+    const caseDevice = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : "";
+    if(!caseDevice) return;
+    const label = String(caseDevice).trim();
+    if(!label) return;
+    const key = caseDeviceSlug(label);
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    list.push(label);
+  });
+  return list.sort((a,b)=>a.localeCompare(b, 'pt-BR'));
+}
+function populateCaseDeviceOptions(){
+  if(!selectCaseDevice) return;
+  const options = collectCaseDeviceOptions();
+  const base = [`<option value="__all">Todas</option>`];
+  options.forEach(opt=>{
+    const safe = escapeHtml(opt);
+    base.push(`<option value="${safe}">${safe}</option>`);
+  });
+  selectCaseDevice.innerHTML = base.join("");
+  updateCaseDeviceFilterVisibility();
+}
+function updateCaseDeviceFilterVisibility(){
+  if(!selectCaseDevice || !caseFilterControl) return;
+  const hasOptions = selectCaseDevice.options.length > 1;
+  const shouldShow = hasOptions && isCapasCategory(selectCategory.value);
+  caseFilterControl.hidden = !shouldShow;
+  selectCaseDevice.disabled = !shouldShow;
+  if(!shouldShow && selectCaseDevice.value !== "__all"){
+    selectCaseDevice.value = "__all";
+    syncUrlCaseDevice("__all");
+  }
+}
 
 function applyInitialQuery(){
   const params = new URL(location.href).searchParams;
   const rawSearch = (params.get("q") || "").trim();
   const rawCategory = (params.get("category") || "").trim();
+  const rawCaseDevice = (params.get("caseDevice") || "").trim();
   const hasCategoryParam = Boolean(rawCategory);
+  const hasCaseParam = Boolean(rawCaseDevice);
 
   let matchedCategory = findCategoryMatch(rawCategory);
   let matchedFromSearch = false;
+  let matchedCaseDevice = hasCaseParam ? findCaseDeviceMatch(rawCaseDevice) : "";
 
   if (!matchedCategory && rawSearch) {
     const fallbackMatch = findCategoryMatch(rawSearch);
     if (fallbackMatch) {
       matchedCategory = fallbackMatch;
       matchedFromSearch = true;
+    }
+  }
+
+  if (matchedCaseDevice && (!matchedCategory || !isCapasCategory(matchedCategory))) {
+    const capasOption = findCategoryMatch('capas');
+    if (capasOption) {
+      matchedCategory = capasOption;
     }
   }
 
@@ -274,6 +352,21 @@ function applyInitialQuery(){
   if (matchedCategory) {
     syncUrlCategory(matchedCategory, matchedFromSearch && !hasCategoryParam);
   }
+
+  if(selectCaseDevice){
+    if(matchedCaseDevice && isCapasCategory(selectCategory.value)){
+      selectCaseDevice.value = matchedCaseDevice;
+    }else{
+      selectCaseDevice.value = "__all";
+    }
+  }
+  updateCaseDeviceFilterVisibility();
+
+  if(matchedCaseDevice && isCapasCategory(selectCategory.value)){
+    syncUrlCaseDevice(matchedCaseDevice);
+  }else if(hasCaseParam){
+    syncUrlCaseDevice("__all");
+  }
 }
 
 function bind(){
@@ -283,9 +376,21 @@ function bind(){
   },200));
   selectCategory.addEventListener("change", ()=>{
     syncUrlCategory(selectCategory.value, false);
+    updateCaseDeviceFilterVisibility();
+    if(selectCaseDevice && caseFilterControl && !caseFilterControl.hidden){
+      syncUrlCaseDevice(selectCaseDevice.value);
+    }else{
+      syncUrlCaseDevice("__all");
+    }
     render();
   });
   selectSort.addEventListener("change", render);
+  if(selectCaseDevice){
+    selectCaseDevice.addEventListener("change", ()=>{
+      syncUrlCaseDevice(selectCaseDevice.value);
+      render();
+    });
+  }
 }
 
 function getFiltered(){
@@ -293,16 +398,21 @@ function getFiltered(){
   const normalizedTerm = normalizeText(termRaw);
   const cat = selectCategory.value;
   const selectedCatSlug = cat === "__all" ? "" : categorySlug(cat);
+  const isCapasSelected = isCapasCategory(cat);
+  const shouldFilterCase = Boolean(selectCaseDevice) && !selectCaseDevice.disabled && isCapasSelected && selectCaseDevice.value !== "__all";
+  const selectedCaseSlug = shouldFilterCase ? caseDeviceSlug(selectCaseDevice.value) : "";
   let list = PRODUCTS.filter(p=>{
     const productCatSlug = categorySlug(p.category);
     const inCat = !selectedCatSlug || (productCatSlug === selectedCatSlug);
+    const caseDevice = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : "";
+    const matchesCase = !shouldFilterCase || (caseDeviceSlug(caseDevice) === selectedCaseSlug);
     const inTxt = !normalizedTerm
       || includesNormalizedText(p.name, normalizedTerm)
       || includesNormalizedText(p.subtitle, normalizedTerm)
       || includesNormalizedText(p.tags, normalizedTerm)
       || includesNormalizedText(p.category, normalizedTerm)
       || includesNormalizedText(p?.specs?.caseDevice || "", normalizedTerm);
-    return inCat && inTxt;
+    return inCat && inTxt && matchesCase;
   });
   const s = selectSort.value;
   if(s==="price_asc") list.sort((a,b)=>a.price-b.price);
