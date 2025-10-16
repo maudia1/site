@@ -46,6 +46,11 @@
   .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
   .products-toolbar{flex-direction:column;align-items:flex-start;gap:12px}
   .products-toolbar input{width:100%;max-width:420px}
+  .products-toolbar select{width:100%;max-width:420px}
+  .products-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;width:100%}
+  .products-filters select{flex:1 1 180px;min-width:160px}
+  .products-filters input{flex:2 1 240px;min-width:200px}
+  .products-filters [data-admin-case-filter]{flex:1 1 180px}
   #products-card{grid-column:1/-1}
   #flt{background:rgba(15,23,42,.6);border:1px solid rgba(148,163,184,.32);padding:12px 14px;border-radius:12px;color:#f8fafc;font-size:1rem}
   .product-groups{display:grid;gap:28px;margin-top:12px}
@@ -97,6 +102,7 @@
   @media(min-width:720px){
     .products-toolbar{flex-direction:row;align-items:center;gap:16px}
     .product-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .products-filters{justify-content:flex-end}
   }
 </style>
 </head><body>
@@ -302,7 +308,17 @@
     <section class="card" id="products-card">
       <div class="toolbar products-toolbar">
         <h2>Produtos</h2>
-        <input id="flt" type="search" placeholder="Buscar por nome, categoria ou tag" aria-label="Buscar produtos" autocomplete="off" />
+        <div class="products-filters">
+          <select id="product-category-filter" aria-label="Filtrar por categoria">
+            <option value="__all">Todas as categorias</option>
+          </select>
+          <div data-admin-case-filter hidden>
+            <select id="product-case-filter" aria-label="Filtrar por compatibilidade">
+              <option value="__all">Todas as compatibilidades</option>
+            </select>
+          </div>
+          <input id="flt" type="search" placeholder="Buscar por nome, categoria ou tag" aria-label="Buscar produtos" autocomplete="off" />
+        </div>
       </div>
       <div class="product-groups" id="product-groups">
         <p class="muted small">Carregando produtos…</p>
@@ -330,6 +346,9 @@ const CASE_DEVICE_OPTIONS=[
   "iPhone 17 Pro",
   "iPhone 17 Pro Max"
 ];
+const categoryFilterSelect=$("#product-category-filter");
+const caseFilterSelect=$("#product-case-filter");
+const caseFilterWrap=document.querySelector('[data-admin-case-filter]');
 function normalizeGallery(...sources){
   const collected=[];
   sources.forEach(src=>{
@@ -397,6 +416,71 @@ function updateCaseDeviceVisibility(categoryValue=""){
   if(select){
     select.disabled=!isCapas;
     select.required=Boolean(isCapas);
+  }
+}
+
+function renderCategoryFilterOptions(products){
+  if(!categoryFilterSelect) return;
+  const prev=categoryFilterSelect.value||"__all";
+  const categories=new Set();
+  if(Array.isArray(products)){
+    products.forEach(p=>{
+      const label=normalizeCategoryValue(p?.category||"");
+      if(label) categories.add(label);
+    });
+  }
+  if(prev && prev!=="__all"){ categories.add(prev); }
+  const preferred=FIXED_CATEGORIES.filter(cat=>categories.has(cat));
+  const dynamic=Array.from(categories).filter(cat=>!FIXED_CATEGORIES.includes(cat)).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  const ordered=[...preferred,...dynamic];
+  const options=['<option value="__all">Todas as categorias</option>'];
+  ordered.forEach(cat=>{ options.push(`<option value="${esc(cat)}">${esc(cat)}</option>`); });
+  categoryFilterSelect.innerHTML=options.join('');
+  if(prev!=="__all" && ordered.includes(prev)){
+    categoryFilterSelect.value=prev;
+  }else{
+    categoryFilterSelect.value="__all";
+  }
+}
+
+function renderCaseFilterOptions(products){
+  if(!caseFilterSelect) return;
+  const prev=caseFilterSelect.value||"__all";
+  const compatibilities=new Set();
+  if(Array.isArray(products)){
+    products.forEach(p=>{
+      const categoryLabel=normalizeCategoryValue(p?.category||"");
+      if(categoryLabel.toLowerCase()!=="capas") return;
+      const specs=typeof p?.specs==="object" && !Array.isArray(p?.specs) ? p.specs : {};
+      const normalized=normalizeCaseDeviceValue(specs?.caseDevice||"");
+      if(normalized) compatibilities.add(normalized);
+    });
+  }
+  if(prev && prev!=="__all"){ compatibilities.add(prev); }
+  const preferred=CASE_DEVICE_OPTIONS.filter(opt=>compatibilities.has(opt));
+  const dynamic=Array.from(compatibilities).filter(opt=>!CASE_DEVICE_OPTIONS.includes(opt)).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+  const ordered=[...preferred,...dynamic];
+  const options=['<option value="__all">Todas as compatibilidades</option>'];
+  ordered.forEach(label=>{ options.push(`<option value="${esc(label)}">${esc(label)}</option>`); });
+  caseFilterSelect.innerHTML=options.join('');
+  if(prev!=="__all" && ordered.includes(prev)){
+    caseFilterSelect.value=prev;
+  }else{
+    caseFilterSelect.value="__all";
+  }
+}
+
+function updateAdminCaseFilterVisibility(categoryValue=""){
+  const normalized=normalizeCategoryValue(categoryValue||"");
+  const isCapas=normalized.toLowerCase()==="capas";
+  if(caseFilterWrap){
+    caseFilterWrap.hidden=!isCapas;
+  }
+  if(caseFilterSelect){
+    caseFilterSelect.disabled=!isCapas;
+    if(!isCapas){
+      caseFilterSelect.value="__all";
+    }
   }
 }
 
@@ -618,7 +702,23 @@ async function list(){
   const input=$("#flt");
   const searchRaw=String(input?.value||"");
   const q=searchRaw.toLowerCase().trim();
+  renderCategoryFilterOptions(data);
+  renderCaseFilterOptions(data);
+  updateAdminCaseFilterVisibility(categoryFilterSelect?.value||"");
+  const selectedCategoryValue=categoryFilterSelect && categoryFilterSelect.value!=="__all" ? normalizeCategoryValue(categoryFilterSelect.value) : "";
+  const shouldFilterCategory=Boolean(selectedCategoryValue);
+  const selectedCaseValue=caseFilterSelect && caseFilterSelect.value!=="__all" ? normalizeCaseDeviceValue(caseFilterSelect.value) : "";
+  const shouldFilterCase=Boolean(selectedCaseValue) && shouldFilterCategory && selectedCategoryValue.toLowerCase()==="capas";
   const filtered=data.filter(p=>{
+    if(shouldFilterCategory){
+      const categoryLabel=normalizeCategoryValue(p.category||"");
+      if(categoryLabel!==selectedCategoryValue) return false;
+    }
+    if(shouldFilterCase){
+      const specs=typeof p?.specs==="object" && !Array.isArray(p?.specs) ? p.specs : {};
+      const caseDevice=normalizeCaseDeviceValue(specs?.caseDevice||"");
+      if(caseDevice!==selectedCaseValue) return false;
+    }
     if(!q) return true;
     const tagsValue=Array.isArray(p.tags)?p.tags.join(", "):p.tags;
     return [p.name,p.category,p.brand,tagsValue].some(value=>String(value||"").toLowerCase().includes(q));
@@ -677,6 +777,8 @@ async function list(){
   return data;
 }
 $("#flt").addEventListener("input",()=>list());
+categoryFilterSelect?.addEventListener("change",e=>{updateAdminCaseFilterVisibility(e.target.value);list();});
+caseFilterSelect?.addEventListener("change",()=>list());
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function toNumber(v){
