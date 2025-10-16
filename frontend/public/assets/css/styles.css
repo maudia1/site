@@ -137,9 +137,9 @@ a:hover{opacity:.9}
 .instagram-meta{display:flex;flex-wrap:wrap;gap:12px;margin:4px 0 6px}
 .insta-stat{display:flex;flex-direction:column;gap:4px;padding:12px 18px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);box-shadow:0 16px 36px rgba(6,4,18,.42);min-width:160px;font-size:.82rem;color:rgba(237,237,246,.9)}
 .insta-stat strong{font-size:1.12rem;color:#fff;font-weight:700;letter-spacing:.01em}
-.insta-btn{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);font-weight:600;box-shadow:0 16px 34px rgba(6,4,18,.4);transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.insta-btn{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:16px;border:0;background:linear-gradient(135deg,#f58529,#dd2a7b 45%,#8134af 75%,#515bd4);color:#fff;font-weight:600;box-shadow:0 16px 34px rgba(6,4,18,.4);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
 .insta-btn img{width:22px;height:22px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.45))}
-.insta-btn:hover{transform:translateY(-3px);box-shadow:0 26px 46px rgba(6,4,18,.48);background:rgba(255,255,255,.12)}
+.insta-btn:hover{transform:translateY(-3px);box-shadow:0 26px 46px rgba(6,4,18,.48);filter:brightness(1.05)}
 .instagram-preview{flex:1 1 420px;max-width:520px;border-radius:30px;overflow:hidden;border:1px solid rgba(255,255,255,.14);box-shadow:0 32px 70px rgba(5,4,20,.55);background:radial-gradient(circle at top,rgba(255,255,255,.08),rgba(12,10,24,.82) 60%);position:relative;display:grid;place-items:center;padding:18px;aspect-ratio:3/4}
 .instagram-preview::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(195deg,rgba(255,255,255,.05),transparent 45%)}
 .instagram-preview img{display:block;width:100%;height:100%;object-fit:cover;border-radius:22px;box-shadow:0 20px 38px rgba(5,4,18,.45)}
@@ -191,8 +191,17 @@ a:hover{opacity:.9}
 }
 
 @media(max-width:720px){
-  .instagram-meta{width:100%}
+  .home-instagram{padding:60px 0}
+  .home-instagram .iw-container{flex-direction:column;align-items:stretch;gap:32px}
+  .instagram-preview{order:-1;width:100%;max-width:none;margin:0 auto 8px;padding:14px;aspect-ratio:auto}
+  .instagram-preview img{border-radius:20px}
+  .instagram-copy{max-width:none;text-align:center;justify-items:center}
+  .instagram-copy .section-title{font-size:1.8rem}
+  .instagram-perks{gap:12px}
+  .instagram-perks li{justify-content:center;text-align:left}
+  .instagram-meta{width:100%;justify-content:center}
   .insta-stat{flex:1 1 140px;min-width:0}
+  .insta-btn{justify-content:center;width:100%}
   .store-grid{grid-template-columns:1fr}
 }
 
