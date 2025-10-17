@@ -348,19 +348,17 @@ body.iw-modal-open{overflow:hidden}
 
 /* Preço */
 .product-pricing{ display:grid; gap:6px; margin-top:4px }
-.product-price-line{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap }
+.product-price-line{ display:flex; align-items:baseline; justify-content:space-between; gap:8px }
 .product-price-label{ font-size:.85rem; color:var(--muted); font-weight:500 }
 .price-now{ font-size:1.1rem; font-weight:700 }
-.product-price-line--primary{ gap:14px }
-.product-price-line--primary .price-installment{ color:var(--muted); font-weight:500; text-align:right }
-.product-price-line--primary .price-installment strong{ color:#fff; font-weight:700 }
 .product-price-line--cashback .product-price-label,
 .product-price-line--savings .product-price-label{ color:var(--cashback); }
 .price-cashback{ font-size:1.05rem; font-weight:700; color:var(--cashback-strong) }
 .price-saved{ font-size:.95rem; font-weight:600; color:var(--cashback-strong) }
 .price-old{ font-size:.95rem; color:#a4a4a4; text-decoration:line-through; opacity:.75 }
-.price-installment{ font-size:.92rem; color:var(--muted); font-weight:500 }
-.price-installment strong{ display:inline-block; font-size:.97rem; font-weight:700; color:#fff }
+.price-now-group{ display:flex; flex-direction:column; align-items:flex-end; gap:4px; text-align:right }
+.price-now-group .price-installment{ font-size:.92rem; color:var(--muted); font-weight:500 }
+.price-now-group .price-installment strong{ display:inline-block; font-size:.97rem; font-weight:700; color:#fff }
 
 /* Ações */
 .product-actions{ margin-top:6px; display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px }

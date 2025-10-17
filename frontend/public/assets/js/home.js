@@ -210,9 +210,12 @@ if(catSections.length && catChips.length){
         <h3 class="product-title">${escapeHtml(p.name)}</h3>
         ${p.subtitle?`<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>`:''}
         <div class="product-pricing">
-          <div class="product-price-line product-price-line--primary">
-            <span class="price-now">${formatBRL(priceNow)}</span>
-            ${installment ? `<span class="price-installment">${describeInstallment(installment)}</span>`:''}
+          <div class="product-price-line">
+            <span class="product-price-label">Preço:</span>
+            <span class="price-now-group">
+              <span class="price-now">${formatBRL(priceNow)}</span>
+              ${installment ? `<span class="price-installment">${describeInstallment(installment)}</span>`:''}
+            </span>
           </div>
           ${cb ? `
           <div class="product-price-line product-price-line--cashback">

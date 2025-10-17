@@ -473,9 +473,12 @@ function cardHTML(p){
       ${p.subtitle ? `<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>` : ""}
       ${showCompatibility ? `<p class="product-compatibility">Compatível com ${escapeHtml(caseDevice)}</p>` : ""}
       <div class="product-pricing">
-        <div class="product-price-line product-price-line--primary">
-          <span class="price-now">${fmt(priceNow)}</span>
-          ${installment ? `<span class="price-installment">${describeInstallment(installment)}</span>` : ""}
+        <div class="product-price-line">
+          <span class="product-price-label">Preço:</span>
+          <span class="price-now-group">
+            <span class="price-now">${fmt(priceNow)}</span>
+            ${installment ? `<span class="price-installment">${describeInstallment(installment)}</span>` : ""}
+          </span>
         </div>
         ${cb ? `
         <div class="product-price-line product-price-line--cashback">
