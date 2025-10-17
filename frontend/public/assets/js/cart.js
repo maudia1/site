@@ -7,6 +7,12 @@
   const CASHBACK_EVENT = 'iw-cashback-update';
   const PLACEHOLDER_IMAGE = '/assets/img/product-placeholder.svg';
   const CHECKOUT_WHATSAPP = '5561992074182';
+  const INSTALLMENT_CONFIG = {
+    minAmount: 99,
+    baseCount: 3,
+    nextThreshold: 200,
+    stepAmount: 100
+  };
 
   let cart = [];
   let cashbackInfo = null;
@@ -21,6 +27,7 @@
   let cashbackSavedEl;
   let installmentBox;
   let installmentValueEl;
+  let installmentOptionsEl;
   let toastEl;
   let countBadge;
   let closeButtonsBound = false;
@@ -60,8 +67,11 @@
             <span data-cart-total>R$ 0,00</span>
           </div>
           <div class="cart-summary-line cart-summary-line--installment" data-cart-installment hidden>
-            <span class="label">Parcelado</span>
-            <span class="value" data-cart-installment-value></span>
+            <div class="cart-summary-installment">
+              <span class="label">Parcelado</span>
+              <span class="value" data-cart-installment-value></span>
+            </div>
+            <div class="installment-options cart-installment-options" data-cart-installment-options hidden></div>
           </div>
           <div class="cart-summary-line cart-summary-line--cashback" data-cart-cashback hidden>
             <div class="cart-summary-text">
@@ -93,6 +103,7 @@
     cashbackSavedEl = drawer.querySelector('[data-cart-cashback-saved]');
     installmentBox = drawer.querySelector('[data-cart-installment]');
     installmentValueEl = drawer.querySelector('[data-cart-installment-value]');
+    installmentOptionsEl = drawer.querySelector('[data-cart-installment-options]');
 
     drawer.addEventListener('click', (event)=>{
       const trigger = event.target.closest('[data-cart-dismiss]');
@@ -251,7 +262,8 @@
       parts.push(`Com cashback: ${formatBRL(cashback.finalPrice)} (economia de ${formatBRL(cashback.applied)})`);
     }
     if(installment){
-      parts.push(`Parcelado: ${installment.count}x de ${formatBRL(installment.value)}`);
+      const best = installment.options?.[installment.options.length - 1] || installment;
+      parts.push(`Parcelado: ${best.count}x de ${formatBRL(best.value)}`);
     }
     const message = encodeURIComponent(parts.join('\n'));
     const url = `https://wa.me/${CHECKOUT_WHATSAPP}?text=${message}`;
@@ -283,10 +295,12 @@
       const installment = computeInstallments(total);
       if(installment && installmentBox && installmentValueEl){
         installmentBox.hidden = false;
-        installmentValueEl.textContent = `${installment.count}x de ${formatBRL(installment.value)}`;
+        installmentValueEl.textContent = formatInstallmentSummary(installment);
+        renderInstallmentOptions(installmentOptionsEl, installment);
       }else if(installmentBox){
         installmentBox.hidden = true;
         if(installmentValueEl) installmentValueEl.textContent = '';
+        renderInstallmentOptions(installmentOptionsEl, null);
       }
       const cashback = computeCashback(total);
       if(cashback){
@@ -301,6 +315,7 @@
       if(installmentBox){
         installmentBox.hidden = true;
         if(installmentValueEl) installmentValueEl.textContent = '';
+        renderInstallmentOptions(installmentOptionsEl, null);
       }
     }
   }
@@ -441,12 +456,50 @@
 
   function computeInstallments(amount){
     const price = Number(amount);
-    if(!Number.isFinite(price) || price < 200) return null;
-    let count = 3;
-    if(price >= 400) count = 5;
-    else if(price >= 300) count = 4;
-    const value = price / count;
-    return { count, value };
+    if(!Number.isFinite(price) || price < INSTALLMENT_CONFIG.minAmount) return null;
+    const baseCount = INSTALLMENT_CONFIG.baseCount;
+    const extras = price >= INSTALLMENT_CONFIG.nextThreshold
+      ? Math.floor((price - INSTALLMENT_CONFIG.nextThreshold) / INSTALLMENT_CONFIG.stepAmount) + 1
+      : 0;
+    const maxCount = baseCount + extras;
+    const options = [];
+    for(let count = baseCount; count <= maxCount; count++){
+      const minTotal = count === baseCount
+        ? INSTALLMENT_CONFIG.minAmount
+        : INSTALLMENT_CONFIG.nextThreshold + (count - baseCount - 1) * INSTALLMENT_CONFIG.stepAmount;
+      options.push({
+        count,
+        value: price / count,
+        minTotal
+      });
+    }
+    const best = options[options.length - 1];
+    return {
+      count: best.count,
+      value: best.value,
+      options
+    };
+  }
+
+  function formatInstallmentSummary(installment){
+    if(!installment) return '';
+    const best = installment.options?.[installment.options.length - 1] || installment;
+    return `até ${best.count}x de ${formatBRL(best.value)}`;
+  }
+
+  function renderInstallmentOptions(target, installment){
+    if(!target) return;
+    if(!installment?.options?.length){
+      target.innerHTML = '';
+      target.hidden = true;
+      return;
+    }
+    const chips = installment.options.map(option=>{
+      const minText = formatBRL(option.minTotal);
+      return `<span class="installment-chip" title="Disponível a partir de ${minText}"><strong>${option.count}x</strong><span>${formatBRL(option.value)}</span></span>`;
+    }).join('');
+    target.innerHTML = chips;
+    target.hidden = false;
   }
 
   function computeCashback(price){
