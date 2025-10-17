@@ -64,13 +64,7 @@
           <span id="product-price" class="price-now">R$ 0,00</span>
           <span id="product-oldprice" class="price-old" hidden></span>
         </div>
-        <div id="product-installment" class="installment-box" hidden>
-          <div class="installment-box__header">
-            <span class="installment-box__label">Parcelamento</span>
-            <span id="product-installment-summary" class="price-installment"></span>
-          </div>
-          <div id="product-installment-options" class="installment-box__options"></div>
-        </div>
+        <p id="product-installment" class="price-installment" hidden></p>
         <p id="product-description-short" class="product-summary muted" hidden></p>
         <div id="product-tags" class="product-tags" hidden></div>
         <div class="product-actions">
@@ -131,8 +125,6 @@
   const priceEl = document.getElementById('product-price');
   const oldPriceEl = document.getElementById('product-oldprice');
   const installmentEl = document.getElementById('product-installment');
-  const installmentSummaryEl = document.getElementById('product-installment-summary');
-  const installmentOptionsEl = document.getElementById('product-installment-options');
   const categoryEl = document.getElementById('product-category');
   const tagsEl = document.getElementById('product-tags');
   const metaEl = document.querySelector('#product-meta dl');
@@ -162,55 +154,14 @@
     });
   }
 
-  const INSTALLMENT_CONFIG = {
-    minAmount: 99,
-    baseCount: 3,
-    nextThreshold: 200,
-    stepAmount: 100
-  };
-
   function computeInstallments(amount){
     const price = Number(amount);
-    if(!Number.isFinite(price) || price < INSTALLMENT_CONFIG.minAmount) return null;
-    const baseCount = INSTALLMENT_CONFIG.baseCount;
-    const extras = price >= INSTALLMENT_CONFIG.nextThreshold
-      ? Math.floor((price - INSTALLMENT_CONFIG.nextThreshold) / INSTALLMENT_CONFIG.stepAmount) + 1
-      : 0;
-    const maxCount = baseCount + extras;
-    const options = [];
-    for(let count = baseCount; count <= maxCount; count++){
-      const minTotal = count === baseCount
-        ? INSTALLMENT_CONFIG.minAmount
-        : INSTALLMENT_CONFIG.nextThreshold + (count - baseCount - 1) * INSTALLMENT_CONFIG.stepAmount;
-      options.push({
-        count,
-        value: price / count,
-        minTotal
-      });
-    }
-    const best = options[options.length - 1];
-    return {
-      count: best.count,
-      value: best.value,
-      options
-    };
-  }
-
-  function renderInstallmentOptions(target, installment){
-    if(!target) return;
-    if(!installment || !Array.isArray(installment.options)){
-      target.innerHTML = '';
-      target.hidden = true;
-      return;
-    }
-    const chips = installment.options.map(option=>{
-      const label = `${option.count}x`;
-      const value = fmt(option.value);
-      const minText = fmt(option.minTotal);
-      return `<span class="installment-chip" title="Disponível a partir de ${minText}"><strong>${label}</strong><span>${value}</span></span>`;
-    }).join('');
-    target.innerHTML = chips;
-    target.hidden = false;
+    if(!Number.isFinite(price) || price < 200) return null;
+    let count = 3;
+    if(price >= 400) count = 5;
+    else if(price >= 300) count = 4;
+    const value = price / count;
+    return { count, value };
   }
 
   function normalizeGallery(...sources){
@@ -288,16 +239,10 @@
 
     const installment = computeInstallments(p.price);
     if(installment && installmentEl){
-      const best = installment.options?.[installment.options.length - 1] || installment;
-      if(installmentSummaryEl){
-        installmentSummaryEl.textContent = `até ${best.count}x de ${fmt(best.value)}`;
-      }
-      renderInstallmentOptions(installmentOptionsEl, installment);
+      installmentEl.textContent = `ou ${installment.count}x de ${fmt(installment.value)}`;
       installmentEl.hidden = false;
     }else if(installmentEl){
       installmentEl.hidden = true;
-      if(installmentSummaryEl) installmentSummaryEl.textContent = '';
-      if(installmentOptionsEl) installmentOptionsEl.innerHTML = '';
     }
 
     const desc = (p.description || '').trim();

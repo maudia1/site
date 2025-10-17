@@ -9,12 +9,6 @@ const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"B
 const PLACEHOLDER_IMAGE = "/assets/img/product-placeholder.svg";
 const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
-const INSTALLMENT_CONFIG = {
-  minAmount: 99,
-  baseCount: 3,
-  nextThreshold: 200,
-  stepAmount: 100
-};
 let cashbackInfo = readCashbackFromStorage();
 let PRODUCTS = [];
 const CAPAS_SLUG = categorySlug('Capas');
@@ -50,44 +44,12 @@ function normalizeGallery(...sources){
 
 function computeInstallments(amount){
   const price = Number(amount);
-  if(!Number.isFinite(price) || price < INSTALLMENT_CONFIG.minAmount) return null;
-  const baseCount = INSTALLMENT_CONFIG.baseCount;
-  const extras = price >= INSTALLMENT_CONFIG.nextThreshold
-    ? Math.floor((price - INSTALLMENT_CONFIG.nextThreshold) / INSTALLMENT_CONFIG.stepAmount) + 1
-    : 0;
-  const maxCount = baseCount + extras;
-  const options = [];
-  for(let count = baseCount; count <= maxCount; count++){
-    const minTotal = count === baseCount
-      ? INSTALLMENT_CONFIG.minAmount
-      : INSTALLMENT_CONFIG.nextThreshold + (count - baseCount - 1) * INSTALLMENT_CONFIG.stepAmount;
-    options.push({
-      count,
-      value: price / count,
-      minTotal
-    });
-  }
-  const best = options[options.length - 1];
-  return {
-    count: best.count,
-    value: best.value,
-    options
-  };
-}
-
-function installmentSummary(installment){
-  if(!installment) return "";
-  const best = installment.options?.[installment.options.length - 1] || installment;
-  return `até ${best.count}x de ${fmt(best.value)}`;
-}
-
-function installmentOptionsHtml(installment){
-  if(!installment?.options?.length) return "";
-  const chips = installment.options.map(option=>{
-    const minText = fmt(option.minTotal);
-    return `<span class="installment-chip" title="Disponível a partir de ${minText}"><strong>${option.count}x</strong><span>${fmt(option.value)}</span></span>`;
-  }).join("");
-  return `<div class="installment-options">${chips}</div>`;
+  if(!Number.isFinite(price) || price < 200) return null;
+  let count = 3;
+  if(price >= 400) count = 5;
+  else if(price >= 300) count = 4;
+  const value = price / count;
+  return { count, value };
 }
 
 init().catch(err=>{
@@ -511,10 +473,7 @@ function cardHTML(p){
         ${installment ? `
         <div class="product-price-line product-price-line--installment">
           <span class="product-price-label">Parcelado:</span>
-          <div class="installment-details">
-            <span class="price-installment">${installmentSummary(installment)}</span>
-            ${installmentOptionsHtml(installment)}
-          </div>
+          <span class="price-installment">${installment.count}x de ${fmt(installment.value)}</span>
         </div>` : ""}
         ${cb ? `
         <div class="product-price-line product-price-line--cashback">
