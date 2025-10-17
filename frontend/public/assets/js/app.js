@@ -42,6 +42,16 @@ function normalizeGallery(...sources){
   return unique;
 }
 
+function computeInstallments(amount){
+  const price = Number(amount);
+  if(!Number.isFinite(price) || price < 200) return null;
+  let count = 3;
+  if(price >= 400) count = 5;
+  else if(price >= 300) count = 4;
+  const value = price / count;
+  return { count, value };
+}
+
 init().catch(err=>{
   console.error(err);
   countEl.textContent = "Erro ao carregar produtos.";
@@ -435,6 +445,7 @@ function cardHTML(p){
   const coverRaw = gallery[0] || p.image || PLACEHOLDER_IMAGE;
   const cover = escapeHtml(coverRaw);
   const cb = computeCashback(priceNow);
+  const installment = computeInstallments(priceNow);
   const caseDevice = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : "";
   const showCompatibility = caseDevice && String(p.category || "").toLowerCase() === "capas";
   const payload = encodeCartPayload({
@@ -459,6 +470,11 @@ function cardHTML(p){
           <span class="product-price-label">Preço:</span>
           <span class="price-now">${fmt(priceNow)}</span>
         </div>
+        ${installment ? `
+        <div class="product-price-line product-price-line--installment">
+          <span class="product-price-label">Parcelado:</span>
+          <span class="price-installment">${installment.count}x de ${fmt(installment.value)}</span>
+        </div>` : ""}
         ${cb ? `
         <div class="product-price-line product-price-line--cashback">
           <span class="product-price-label">Com seu cashback:</span>

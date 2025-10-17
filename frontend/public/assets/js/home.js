@@ -17,6 +17,16 @@ function decodeCartPayload(value){
   }
 }
 
+function computeInstallments(amount){
+  const price = Number(amount);
+  if(!Number.isFinite(price) || price < 200) return null;
+  let count = 3;
+  if(price >= 400) count = 5;
+  else if(price >= 300) count = 4;
+  const value = price / count;
+  return { count, value };
+}
+
 // Scroll reveal
 const observer = new IntersectionObserver((entries)=>{
   entries.forEach(e=>{
@@ -175,6 +185,7 @@ if(catSections.length && catChips.length){
     const pct = hasOld ? Math.round((1-p.price/p.oldPrice)*100) : 0;
     const priceNow = Number(p.price) || 0;
     const cb = computeCashback(priceNow);
+    const installment = computeInstallments(priceNow);
     const payload = encodeCartPayload({
       id:p.id,
       name:p.name,
@@ -196,6 +207,11 @@ if(catSections.length && catChips.length){
             <span class="product-price-label">Preço:</span>
             <span class="price-now">${formatBRL(priceNow)}</span>
           </div>
+          ${installment ? `
+          <div class="product-price-line product-price-line--installment">
+            <span class="product-price-label">Parcelado:</span>
+            <span class="price-installment">${installment.count}x de ${formatBRL(installment.value)}</span>
+          </div>`:''}
           ${cb ? `
           <div class="product-price-line product-price-line--cashback">
             <span class="product-price-label">Com seu cashback:</span>

@@ -64,6 +64,7 @@
           <span id="product-price" class="price-now">R$ 0,00</span>
           <span id="product-oldprice" class="price-old" hidden></span>
         </div>
+        <p id="product-installment" class="price-installment" hidden></p>
         <p id="product-description-short" class="product-summary muted" hidden></p>
         <div id="product-tags" class="product-tags" hidden></div>
         <div class="product-actions">
@@ -123,6 +124,7 @@
   const subtitleEl = document.getElementById('product-subtitle');
   const priceEl = document.getElementById('product-price');
   const oldPriceEl = document.getElementById('product-oldprice');
+  const installmentEl = document.getElementById('product-installment');
   const categoryEl = document.getElementById('product-category');
   const tagsEl = document.getElementById('product-tags');
   const metaEl = document.querySelector('#product-meta dl');
@@ -150,6 +152,16 @@
       };
       window.dispatchEvent(new CustomEvent(CART_ADD_EVENT,{detail:payload}));
     });
+  }
+
+  function computeInstallments(amount){
+    const price = Number(amount);
+    if(!Number.isFinite(price) || price < 200) return null;
+    let count = 3;
+    if(price >= 400) count = 5;
+    else if(price >= 300) count = 4;
+    const value = price / count;
+    return { count, value };
   }
 
   function normalizeGallery(...sources){
@@ -223,6 +235,14 @@
       oldPriceEl.hidden = false;
     }else{
       oldPriceEl.hidden = true;
+    }
+
+    const installment = computeInstallments(p.price);
+    if(installment && installmentEl){
+      installmentEl.textContent = `ou ${installment.count}x de ${fmt(installment.value)}`;
+      installmentEl.hidden = false;
+    }else if(installmentEl){
+      installmentEl.hidden = true;
     }
 
     const desc = (p.description || '').trim();
