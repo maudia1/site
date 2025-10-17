@@ -6,6 +6,9 @@ const selectCaseDevice=$("#caseDeviceFilter");
 const caseFilterControl=document.querySelector('[data-case-filter]');
 
 const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const installmentHelpers = (typeof window !== 'undefined' && window.iwInstallments) ? window.iwInstallments : null;
+const computeInstallment = (amount)=> installmentHelpers?.compute(amount) ?? null;
+const describeInstallment = (option)=> option ? `ou <strong>em até ${option.count}x de ${fmt(option.value)}</strong> sem juros` : '';
 const PLACEHOLDER_IMAGE = "/assets/img/product-placeholder.svg";
 const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
@@ -435,6 +438,7 @@ function cardHTML(p){
   const coverRaw = gallery[0] || p.image || PLACEHOLDER_IMAGE;
   const cover = escapeHtml(coverRaw);
   const cb = computeCashback(priceNow);
+  const installment = computeInstallment(priceNow);
   const caseDevice = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : "";
   const showCompatibility = caseDevice && String(p.category || "").toLowerCase() === "capas";
   const payload = encodeCartPayload({
@@ -455,9 +459,9 @@ function cardHTML(p){
       ${p.subtitle ? `<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>` : ""}
       ${showCompatibility ? `<p class="product-compatibility">Compatível com ${escapeHtml(caseDevice)}</p>` : ""}
       <div class="product-pricing">
-        <div class="product-price-line">
-          <span class="product-price-label">Preço:</span>
+        <div class="product-price-line product-price-line--primary">
           <span class="price-now">${fmt(priceNow)}</span>
+          ${installment ? `<span class="price-installment">${describeInstallment(installment)}</span>` : ""}
         </div>
         ${cb ? `
         <div class="product-price-line product-price-line--cashback">

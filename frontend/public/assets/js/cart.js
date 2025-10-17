@@ -7,6 +7,16 @@
   const CASHBACK_EVENT = 'iw-cashback-update';
   const PLACEHOLDER_IMAGE = '/assets/img/product-placeholder.svg';
   const CHECKOUT_WHATSAPP = '5561992074182';
+  const installmentHelpers = (typeof window !== 'undefined' && window.iwInstallments) ? window.iwInstallments : null;
+
+  const computeInstallment = (amount)=> installmentHelpers?.compute(amount) ?? null;
+  const describeInstallment = (option)=>{
+    if(!option) return '';
+    if(installmentHelpers?.describe){
+      return installmentHelpers.describe(option, formatBRL);
+    }
+    return `em até ${option.count}x de ${formatBRL(option.value)} sem juros`;
+  };
 
   let cart = [];
   let cashbackInfo = null;
@@ -19,6 +29,8 @@
   let cashbackBox;
   let cashbackValueEl;
   let cashbackSavedEl;
+  let installmentBox;
+  let installmentValueEl;
   let toastEl;
   let countBadge;
   let closeButtonsBound = false;
@@ -57,6 +69,10 @@
             <span>Total</span>
             <span data-cart-total>R$ 0,00</span>
           </div>
+          <div class="cart-summary-line cart-summary-line--installment" data-cart-installment hidden>
+            <span class="label">Parcelado</span>
+            <span class="value" data-cart-installment-value></span>
+          </div>
           <div class="cart-summary-line cart-summary-line--cashback" data-cart-cashback hidden>
             <div class="cart-summary-text">
               <span class="label">Com cashback</span>
@@ -85,6 +101,8 @@
     cashbackBox = drawer.querySelector('[data-cart-cashback]');
     cashbackValueEl = drawer.querySelector('[data-cart-total-cashback]');
     cashbackSavedEl = drawer.querySelector('[data-cart-cashback-saved]');
+    installmentBox = drawer.querySelector('[data-cart-installment]');
+    installmentValueEl = drawer.querySelector('[data-cart-installment-value]');
 
     drawer.addEventListener('click', (event)=>{
       const trigger = event.target.closest('[data-cart-dismiss]');
@@ -231,6 +249,7 @@
     if(!cart.length) return;
     const total = cart.reduce((sum,item)=>sum + item.price*item.quantity, 0);
     const cashback = computeCashback(total);
+    const installment = computeInstallment(total);
     const lines = cart.map(item=>`- ${item.name} (x${item.quantity}) — ${formatBRL(item.price*item.quantity)}`);
     const parts = [
       'Olá! Gostaria de finalizar a compra dos itens:',
@@ -240,6 +259,9 @@
     ];
     if(cashback){
       parts.push(`Com cashback: ${formatBRL(cashback.finalPrice)} (economia de ${formatBRL(cashback.applied)})`);
+    }
+    if(installment){
+      parts.push(`Parcelado: ${describeInstallment(installment)}`);
     }
     const message = encodeURIComponent(parts.join('\n'));
     const url = `https://wa.me/${CHECKOUT_WHATSAPP}?text=${message}`;
@@ -268,6 +290,14 @@
     const total = cart.reduce((sum,item)=>sum + item.price*item.quantity, 0);
     totalEl.textContent = formatBRL(total);
     if(cart.length){
+      const installment = computeInstallment(total);
+      if(installment && installmentBox && installmentValueEl){
+        installmentBox.hidden = false;
+        installmentValueEl.textContent = describeInstallment(installment);
+      }else if(installmentBox){
+        installmentBox.hidden = true;
+        if(installmentValueEl) installmentValueEl.textContent = '';
+      }
       const cashback = computeCashback(total);
       if(cashback){
         cashbackBox.hidden = false;
@@ -278,6 +308,10 @@
       }
     }else{
       cashbackBox.hidden = true;
+      if(installmentBox){
+        installmentBox.hidden = true;
+        if(installmentValueEl) installmentValueEl.textContent = '';
+      }
     }
   }
 
@@ -323,7 +357,10 @@
     }catch(err){
       console.warn('[cart] não foi possível salvar o carrinho', err);
     }
-    window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT,{detail:{items:cart.map(cloneItem)}}));
+    const snapshot = cart.map(cloneItem);
+    const total = snapshot.reduce((sum,item)=>sum + item.price * item.quantity, 0);
+    const installment = computeInstallment(total);
+    window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT,{detail:{items:snapshot,total,installment:installment ? {...installment} : null}}));
   }
 
   function sanitizeForStorage(item){

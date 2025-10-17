@@ -62,6 +62,7 @@
         <p id="product-case-device" class="product-compatibility" hidden></p>
         <div class="product-price-box">
           <span id="product-price" class="price-now">R$ 0,00</span>
+          <span id="product-installment" class="price-installment" hidden></span>
           <span id="product-oldprice" class="price-old" hidden></span>
         </div>
         <p id="product-description-short" class="product-summary muted" hidden></p>
@@ -106,6 +107,7 @@
   </div>
 </footer>
 
+<script src="/assets/js/installments.js"></script>
 <script src="/assets/js/nav.js" defer></script>
 <script src="/assets/js/cart.js" defer></script>
 <script>
@@ -114,6 +116,9 @@
   const CART_ADD_EVENT = 'iw-cart-add';
   const CHECKOUT_WHATSAPP = '5561992074182';
   const fmt = (n)=> Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const installmentHelpers = window.iwInstallments ?? null;
+  const computeInstallment = (amount)=> installmentHelpers?.compute(amount) ?? null;
+  const describeInstallment = (option)=> option ? `ou <strong>em até ${option.count}x de ${fmt(option.value)}</strong> sem juros` : '';
   const statusEl = document.getElementById('product-status');
   const layout = document.getElementById('product-content');
   const details = document.getElementById('product-details');
@@ -123,6 +128,7 @@
   const subtitleEl = document.getElementById('product-subtitle');
   const priceEl = document.getElementById('product-price');
   const oldPriceEl = document.getElementById('product-oldprice');
+  const installmentEl = document.getElementById('product-installment');
   const categoryEl = document.getElementById('product-category');
   const tagsEl = document.getElementById('product-tags');
   const metaEl = document.querySelector('#product-meta dl');
@@ -223,6 +229,14 @@
       oldPriceEl.hidden = false;
     }else{
       oldPriceEl.hidden = true;
+    }
+
+    const installment = computeInstallment(p.price);
+    if(installment && installmentEl){
+      installmentEl.innerHTML = describeInstallment(installment);
+      installmentEl.hidden = false;
+    }else if(installmentEl){
+      installmentEl.hidden = true;
     }
 
     const desc = (p.description || '').trim();

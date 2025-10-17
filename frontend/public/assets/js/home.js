@@ -1,4 +1,7 @@
 const CART_ADD_EVENT = 'iw-cart-add';
+const installmentHelpers = (typeof window !== 'undefined' && window.iwInstallments) ? window.iwInstallments : null;
+const computeInstallment = (amount)=> installmentHelpers?.compute(amount) ?? null;
+const describeInstallment = (option)=> option ? `ou <strong>em até ${option.count}x de ${formatBRL(option.value)}</strong> sem juros` : '';
 
 function encodeCartPayload(data){
   try{
@@ -175,6 +178,7 @@ if(catSections.length && catChips.length){
     const pct = hasOld ? Math.round((1-p.price/p.oldPrice)*100) : 0;
     const priceNow = Number(p.price) || 0;
     const cb = computeCashback(priceNow);
+    const installment = computeInstallment(priceNow);
     const payload = encodeCartPayload({
       id:p.id,
       name:p.name,
@@ -192,9 +196,9 @@ if(catSections.length && catChips.length){
         <h3 class="product-title">${escapeHtml(p.name)}</h3>
         ${p.subtitle?`<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>`:''}
         <div class="product-pricing">
-          <div class="product-price-line">
-            <span class="product-price-label">Preço:</span>
+          <div class="product-price-line product-price-line--primary">
             <span class="price-now">${formatBRL(priceNow)}</span>
+            ${installment ? `<span class="price-installment">${describeInstallment(installment)}</span>`:''}
           </div>
           ${cb ? `
           <div class="product-price-line product-price-line--cashback">
