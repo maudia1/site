@@ -53,10 +53,25 @@
     return `em até ${option.count}x de ${format(option.value)} sem juros`;
   }
 
+  function describeInline(option, formatter, prefix){
+    if(!option) return '';
+    const base = describe(option, formatter);
+    if(!base) return '';
+    const prefixText = typeof prefix === 'string' && prefix.trim() ? `${prefix.trim()} ` : '';
+    const match = base.match(/^(.*?)(\s+(sem\s+juros)\.?\s*)$/i);
+    if(match){
+      const main = match[1].trim();
+      const suffix = match[3] ? match[3].trim() : '';
+      return `${prefixText}<strong>${main}</strong>${suffix ? ` ${suffix}` : ''}`;
+    }
+    return `${prefixText}<strong>${base}</strong>`;
+  }
+
   global.iwInstallments = {
     compute,
     list,
     describe,
+    describeInline,
     rules: rules.slice(),
     formatCurrency
   };

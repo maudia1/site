@@ -1,7 +1,21 @@
 const CART_ADD_EVENT = 'iw-cart-add';
 const installmentHelpers = (typeof window !== 'undefined' && window.iwInstallments) ? window.iwInstallments : null;
 const computeInstallment = (amount)=> installmentHelpers?.compute(amount) ?? null;
-const describeInstallment = (option)=> option ? `ou <strong>em até ${option.count}x de ${formatBRL(option.value)}</strong> sem juros` : '';
+const describeInstallment = (option)=>{
+  if(!option) return '';
+  if(installmentHelpers?.describeInline){
+    return installmentHelpers.describeInline(option, formatBRL, 'ou');
+  }
+  const base = installmentHelpers?.describe?.(option, formatBRL)
+    ?? `em até ${option.count}x de ${formatBRL(option.value)} sem juros`;
+  const match = base.match(/^(.*?)(\s+(sem\s+juros)\.?\s*)$/i);
+  if(match){
+    const main = match[1].trim();
+    const suffix = match[3] ? match[3].trim() : '';
+    return `ou <strong>${main}</strong>${suffix ? ` ${suffix}` : ''}`;
+  }
+  return `ou <strong>${base}</strong>`;
+};
 
 function encodeCartPayload(data){
   try{

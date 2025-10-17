@@ -8,7 +8,21 @@ const caseFilterControl=document.querySelector('[data-case-filter]');
 const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const installmentHelpers = (typeof window !== 'undefined' && window.iwInstallments) ? window.iwInstallments : null;
 const computeInstallment = (amount)=> installmentHelpers?.compute(amount) ?? null;
-const describeInstallment = (option)=> option ? `ou <strong>em até ${option.count}x de ${fmt(option.value)}</strong> sem juros` : '';
+const describeInstallment = (option)=>{
+  if(!option) return '';
+  if(installmentHelpers?.describeInline){
+    return installmentHelpers.describeInline(option, fmt, 'ou');
+  }
+  const base = installmentHelpers?.describe?.(option, fmt)
+    ?? `em até ${option.count}x de ${fmt(option.value)} sem juros`;
+  const match = base.match(/^(.*?)(\s+(sem\s+juros)\.?\s*)$/i);
+  if(match){
+    const main = match[1].trim();
+    const suffix = match[3] ? match[3].trim() : '';
+    return `ou <strong>${main}</strong>${suffix ? ` ${suffix}` : ''}`;
+  }
+  return `ou <strong>${base}</strong>`;
+};
 const PLACEHOLDER_IMAGE = "/assets/img/product-placeholder.svg";
 const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
