@@ -145,9 +145,9 @@
       <form id="product-form" novalidate>
         <div class="form-header">
           <div class="form-intro">
-            <span class="form-pill">Cadastro rápido</span>
+            <span class="form-pill">Cadastro expresso</span>
             <h2 id="form-title">Cadastrar produto</h2>
-            <p class="muted small">Preencha os campos essenciais e deixe as fotos em destaque para vender mais.</p>
+            <p class="muted small">Preencha o básico, capriche nas fotos e publique o item em poucos cliques.</p>
           </div>
           <button type="button" class="btn btn-ghost" id="clear">Limpar</button>
         </div>
@@ -180,7 +180,7 @@
               <select id="caseDevice" disabled>
                 <option value="">Selecione o modelo</option>
               </select>
-              <small>Escolha o modelo de iPhone compatível com a capa.</small>
+              <small>Selecione o modelo exato do iPhone para evitar dúvidas na venda.</small>
             </div>
           </div>
 
@@ -191,13 +191,13 @@
 
           <div class="stack">
             <label for="description">Descrição</label>
-            <textarea id="description" placeholder="Fale sobre o produto, principais destaques etc."></textarea>
+            <textarea id="description" placeholder="Conte os diferenciais, compatibilidades e o que acompanha."></textarea>
           </div>
 
           <div class="media-section">
             <div class="media-header">
               <h3>Fotos do produto</h3>
-              <p class="form-note">Adicione até três imagens. A primeira é obrigatória e vira a capa; as demais aparecem na galeria da página do produto.</p>
+              <p class="form-note">Adicione até três imagens. A principal vira capa; as demais enriquecem a galeria do produto.</p>
             </div>
             <div class="media-grid">
               <div class="stack">
@@ -230,18 +230,18 @@
                 <input id="file-extra-2" type="file" accept="image/*" data-target="image3"/>
               </div>
             </div>
-            <p class="form-note">Ao enviar um arquivo, o link é preenchido automaticamente.</p>
+            <p class="form-note">O link aparece sozinho após o upload terminar.</p>
           </div>
 
           <details class="advanced">
-            <summary>Campos avançados</summary>
+            <summary>Opções avançadas</summary>
             <div class="row row-single">
               <div class="stack"><label>Tags (separe por vírgula)</label><input id="tags" placeholder="magsafe, silicone"/></div>
             </div>
           </details>
 
           <div class="actions">
-            <button type="submit" class="btn btn-primary" id="save">Cadastrar produto</button>
+            <button type="submit" class="btn btn-primary" id="save">Salvar produto</button>
           </div>
           <div id="msg" class="muted" style="margin-top:8px"></div>
         </div>
@@ -261,15 +261,15 @@
         Use quando seus produtos estiverem <strong>salvos no navegador</strong> (localStorage) e você quiser
         copiá-los para o <strong>servidor</strong> (API / SQLite). O sistema tenta casar por <em>nome</em> (PUT se existir; senão POST).
       </p>
-      <div id="sync-summary" class="muted small">Nenhum produto local encontrado.</div>
+      <div id="sync-summary" class="muted small">Nenhum produto salvo no navegador.</div>
       <pre class="log" id="sync-log"></pre>
-      <div id="server-summary" class="muted small" style="margin-top:12px">Carregando produtos do servidor…</div>
+      <div id="server-summary" class="muted small" style="margin-top:12px">Carregando cat&aacute;logo do servidor...</div>
       <pre class="log" id="server-log"></pre>
     </section>
 
     <section class="card" id="hero-card">
-      <h2>Mega produto da home</h2>
-      <p class="muted small">Selecione um único produto para ocupar o destaque gigante da página inicial.</p>
+      <h2>Destaque principal da home</h2>
+      <p class="muted small">Escolha qual produto vai protagonizar o destaque gigante da p&aacute;gina inicial.</p>
       <form id="hero-form" class="promo-form promo-form--single">
         <div class="promo-grid hero-admin-grid">
           <div class="promo-item">
@@ -278,18 +278,18 @@
           </div>
         </div>
         <div class="mega-admin-preview" id="hero-preview" aria-live="polite">
-          <p class="muted small">Nenhum produto selecionado.</p>
+          <p class="muted small">Nenhum produto selecionado at&eacute; agora.</p>
         </div>
         <div class="promo-actions">
           <span id="hero-msg" class="promo-status"></span>
-          <button type="submit" class="btn btn-primary" id="hero-save">Salvar mega oferta</button>
+          <button type="submit" class="btn btn-primary" id="hero-save">Publicar destaque</button>
         </div>
       </form>
     </section>
 
     <section class="card" id="promo-card">
-      <h2>Promoções da semana</h2>
-      <p class="muted small">Selecione até três produtos para aparecerem na vitrine inicial do site.</p>
+      <h2>Vitrine da semana</h2>
+      <p class="muted small">Escolha at&eacute; tr&ecirc;s produtos para brilhar na vitrine inicial da home.</p>
       <form id="promo-form" class="promo-form">
         <div class="promo-grid">
           <div class="promo-item">
@@ -308,14 +308,14 @@
         <div class="promo-preview" id="promo-preview" aria-live="polite"></div>
         <div class="promo-actions">
           <span id="promo-msg" class="promo-status"></span>
-          <button type="submit" class="btn btn-primary" id="promo-save">Salvar promoções</button>
+          <button type="submit" class="btn btn-primary" id="promo-save">Salvar vitrine</button>
         </div>
       </form>
     </section>
 
     <section class="card" id="home-card">
-      <h2>Produtos da Home</h2>
-      <p class="muted small">Escolha até seis produtos para aparecerem na seção "Mais produtos" da página inicial.</p>
+      <h2>Seleção permanente da home</h2>
+      <p class="muted small">Defina at&eacute; seis produtos para ocupar a se&ccedil;&atilde;o "Mais produtos" da p&aacute;gina inicial.</p>
       <form id="home-form" class="promo-form">
         <div class="promo-grid">
           <div class="promo-item"><label for="home-slot-1">Posição 1</label><select id="home-slot-1" data-home-slot="1"></select></div>
@@ -328,7 +328,7 @@
         <div class="promo-preview" id="home-preview" aria-live="polite"></div>
         <div class="promo-actions">
           <span id="home-msg" class="promo-status"></span>
-          <button type="submit" class="btn btn-primary" id="home-save">Salvar lista da home</button>
+          <button type="submit" class="btn btn-primary" id="home-save">Salvar sele&ccedil;&atilde;o</button>
         </div>
       </form>
     </section>
@@ -350,7 +350,7 @@
         </div>
       </div>
       <div class="product-groups" id="product-groups">
-        <p class="muted small">Carregando produtos…</p>
+        <p class="muted small">Carregando produtos...</p>
       </div>
     </section>
   </div>
@@ -609,7 +609,7 @@ function updateHeroPreview(){
   if(!wrap) return;
   const product=(heroState.options||[]).find(p=>p.id===heroState.productId);
   if(!product){
-    wrap.innerHTML='<p class="muted small">Nenhum produto selecionado.</p>';
+    wrap.innerHTML='<p class="muted small">Nenhum produto selecionado por enquanto.</p>';
     return;
   }
   const hasOld=Number.isFinite(Number(product.oldPrice)) && Number(product.oldPrice)>0;
@@ -638,7 +638,7 @@ $("#hero-form")?.addEventListener('submit',async ev=>{
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
     heroState.productId=data?.productId||null;
-    if(msg) msg.textContent='Mega oferta atualizada!';
+    if(msg) msg.textContent='Destaque principal atualizado!';
     updateHeroPreview();
   }catch(err){
     if(msg) msg.textContent='Erro ao salvar destaque.';
@@ -698,7 +698,7 @@ async function loadFeaturedSlots(){
     }
   }catch{
     const msg=$("#promo-msg");
-    if(msg) msg.textContent='Não foi possível carregar as promoções.';
+    if(msg) msg.textContent='Não foi possível carregar a vitrine da semana.';
   }
   renderPromoSelects();
 }
@@ -728,7 +728,7 @@ async function loadHomeSlots(){
 function updateHomePreview(){
   const wrap=$("#home-preview"); if(!wrap) return;
   const items=[1,2,3,4,5,6].map(slot=>{ const id=homeState.slots[slot]; return (homeState.options||[]).find(p=>p.id===id); }).filter(Boolean);
-  wrap.innerHTML = items.length ? `<ul>${items.map(p=>`<li>${esc(p.name)} — ${fmt(p.price)}</li>`).join('')}</ul>` : '<p class="muted">Nenhum produto selecionado.</p>';
+  wrap.innerHTML = items.length ? `<ul>${items.map(p=>`<li>${esc(p.name)} — ${fmt(p.price)}</li>`).join('')}</ul>` : '<p class="muted">Nenhum produto selecionado por enquanto.</p>';
 }
 homeSelectElements().forEach(select=>{
   select.addEventListener('change',()=>{
@@ -743,15 +743,15 @@ $("#home-form")?.addEventListener('submit', async (ev)=>{
   const msg=$("#home-msg"); const btn=$("#home-save");
   const used=ids.filter(Boolean);
   const duplicates=used.filter((id,idx)=>used.indexOf(id)!==idx);
-  if(duplicates.length){ if(msg) msg.textContent='Selecione produtos diferentes em cada posição.'; return; }
+  if(duplicates.length){ if(msg) msg.textContent='Use produtos diferentes em cada posição.'; return; }
   if(btn) btn.disabled=true; if(msg) msg.textContent='Salvando...';
   try{
     const res=await fetch('/api/home',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
     if(!res.ok) throw new Error('HTTP '+res.status);
-    if(msg) msg.textContent='Lista da home atualizada!';
+    if(msg) msg.textContent='Seleção da home atualizada!';
     await loadHomeSlots();
   }catch{
-    if(msg) msg.textContent='Erro ao salvar a lista.';
+    if(msg) msg.textContent='Erro ao salvar a seleção.';
   }finally{ if(btn) btn.disabled=false; }
 });
 
@@ -763,7 +763,7 @@ function updatePromoPreview(){
     return promoState.options.find(p=>p.id===id);
   }).filter(Boolean);
   if(!selected.length){
-    wrap.innerHTML='<p class="muted small">Nenhum produto selecionado no momento.</p>';
+    wrap.innerHTML='<p class="muted small">Nenhum produto selecionado por enquanto.</p>';
     return;
   }
   wrap.innerHTML='<ul>'+selected.map(p=>`<li><strong>${esc(p.name)}</strong> — ${fmt(p.price)}</li>`).join('')+'</ul>';
@@ -789,7 +789,7 @@ async function savePromos(){
   const used=ids.filter(Boolean);
   const duplicates=used.filter((id,idx)=>used.indexOf(id)!==idx);
   if(duplicates.length){
-    if(msg) msg.textContent='Selecione produtos diferentes em cada posição.';
+    if(msg) msg.textContent='Use produtos diferentes em cada posição.';
     return;
   }
   if(btn) btn.disabled=true;
@@ -797,10 +797,10 @@ async function savePromos(){
   try{
     const res=await fetch('/api/featured',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
     if(!res.ok) throw new Error('HTTP '+res.status);
-    if(msg) msg.textContent='Promoções atualizadas!';
+    if(msg) msg.textContent='Vitrine da semana atualizada!';
     await loadFeaturedSlots();
   }catch(e){
-    if(msg) msg.textContent='Erro ao salvar promoções.';
+    if(msg) msg.textContent='Erro ao salvar a vitrine.';
   }finally{
     if(btn) btn.disabled=false;
   }
@@ -837,7 +837,7 @@ async function list(){
   const wrap=$("#product-groups");
   if(wrap){
     if(!filtered.length){
-      wrap.innerHTML=`<p class="muted small">${q?`Nenhum produto encontrado para "${esc(searchRaw)}".`:"Nenhum produto cadastrado ainda."}</p>`;
+      wrap.innerHTML=`<p class="muted small">${q?`Nenhum produto encontrado para "${esc(searchRaw)}".`:"Nenhum produto cadastrado por aqui ainda."}</p>`;
     }else{
       const grouped=new Map();
       filtered.forEach(p=>{
@@ -1109,7 +1109,7 @@ function renderServerSnapshot(){
   if(summary){
     summary.textContent=list.length
       ? `${list.length} produto(s) cadastrados no servidor.`
-      : "Nenhum produto cadastrado no servidor ainda.";
+      : "Ainda não há produtos cadastrados no servidor.";
   }
   if(log){
     if(!list.length){
@@ -1132,7 +1132,7 @@ function renderLocalSnapshot(){
         summary.textContent+=` ${server.length} produto(s) já estão no servidor.`;
       }
     }else{
-      summary.textContent="Nenhum produto local encontrado.";
+      summary.textContent="Nenhum produto salvo no navegador.";
       if(server.length){
         summary.textContent+=` ${server.length} produto(s) no servidor.`;
       }

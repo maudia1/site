@@ -51,7 +51,7 @@
           <button class="cart-close" type="button" data-cart-dismiss aria-label="Fechar carrinho">&times;</button>
         </header>
         <div class="cart-body">
-          <p class="cart-empty muted" data-cart-empty>Seu carrinho está vazio.</p>
+          <p class="cart-empty muted" data-cart-empty>Seu carrinho está vazio por enquanto.</p>
           <ul class="cart-items" data-cart-items></ul>
         </div>
         <footer class="cart-footer">
@@ -71,7 +71,7 @@
             <span class="value" data-cart-total-cashback>R$ 0,00</span>
           </div>
           <div class="cart-footer-actions">
-            <button class="btn btn-primary cart-checkout" type="button" data-cart-checkout disabled>Finalizar compra</button>
+            <button class="btn btn-primary cart-checkout" type="button" data-cart-checkout disabled>Finalizar pedido</button>
             <button class="btn btn-ghost cart-clear" type="button" data-cart-clear hidden>Esvaziar carrinho</button>
           </div>
         </footer>
@@ -130,7 +130,7 @@
       if(!item) return;
       addItem(item);
       toggleCart(true);
-      showToast(`${item.name} adicionado ao carrinho.`);
+      showToast(`${item.name} foi adicionado ao carrinho.`);
     });
 
     window.addEventListener(CART_OPEN_EVENT, ()=>toggleCart(true));
@@ -242,7 +242,7 @@
     const installment = computeInstallments(total);
     const lines = cart.map(item=>`- ${item.name} (x${item.quantity}) — ${formatBRL(item.price*item.quantity)}`);
     const parts = [
-      'Olá! Gostaria de finalizar a compra dos itens:',
+      'Olá! Quero finalizar a compra destes itens:',
       ...lines,
       '',
       `Total: ${formatBRL(total)}`
