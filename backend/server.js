@@ -17,6 +17,7 @@ const ADMIN_PASS = process.env.ADMIN_PASS || "@Mine9273";
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || "products_sheet";
+const SUPABASE_VISITORS_TABLE = process.env.SUPABASE_VISITORS_TABLE || "quem entrou no site";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "frontend", "public");
@@ -168,6 +169,63 @@ const safeJsonObject = (value) => {
     return {};
   }
 };
+
+async function supabaseEnsureVisitorRecord(phone, name) {
+  try {
+    if (!SUPABASE_URL || !SUPABASE_KEY) return;
+    const digits = String(phone || "").replace(/\D/g, "");
+    if (!digits) return;
+    const tableName = SUPABASE_VISITORS_TABLE?.trim();
+    if (!tableName) return;
+
+    const base = SUPABASE_URL.replace(/\/$/, "");
+    const tablePath = encodeURIComponent(tableName);
+    const commonHeaders = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    };
+
+    try {
+      const checkUrl = new URL(`${base}/rest/v1/${tablePath}`);
+      checkUrl.searchParams.set("select", "numero");
+      checkUrl.searchParams.set("numero", `eq.${digits}`);
+      checkUrl.searchParams.set("limit", "1");
+      const checkRes = await fetch(checkUrl, { headers: commonHeaders });
+      if (checkRes.ok) {
+        const arr = await checkRes.json().catch(() => null);
+        if (Array.isArray(arr) && arr.length) return;
+      } else {
+        console.warn("[visitors] Supabase check falhou", { status: checkRes.status });
+      }
+    } catch (err) {
+      console.warn("[visitors] Supabase check erro", err?.message || err);
+    }
+
+    try {
+      const payload = [{ numero: digits, nome: name ? String(name) : null }];
+      const insertUrl = `${base}/rest/v1/${tablePath}?on_conflict=numero`;
+      const insertHeaders = {
+        ...commonHeaders,
+        "Prefer": "resolution=merge-duplicates,return=minimal"
+      };
+      const insertRes = await fetch(insertUrl, {
+        method: "POST",
+        headers: insertHeaders,
+        body: JSON.stringify(payload)
+      });
+      if (!insertRes.ok) {
+        const text = await insertRes.text().catch(() => "");
+        console.warn("[visitors] Supabase insert falhou", insertRes.status, text);
+      }
+    } catch (err) {
+      console.warn("[visitors] Supabase insert erro", err?.message || err);
+    }
+  } catch (err) {
+    console.warn("[visitors] Registro erro", err?.message || err);
+  }
+}
 
 async function supabaseUpsertProduct(p) {
   try {
@@ -417,6 +475,7 @@ app.get("/api/cashback", async (req, res) => {
           if(Array.isArray(arr) && arr.length){
             const row = arr[0] || {};
             const { name, cashback } = mapRow(row);
+            supabaseEnsureVisitorRecord(phone, name).catch(()=>{});
             return res.json({ found:true, name, cashback });
           }
         }catch(err){
@@ -446,6 +505,7 @@ app.get("/api/cashback", async (req, res) => {
             });
             if(match){
               const { name, cashback } = mapRow(match);
+              supabaseEnsureVisitorRecord(phone, name).catch(()=>{});
               return res.json({ found:true, name, cashback });
             }
           }
