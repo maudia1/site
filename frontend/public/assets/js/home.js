@@ -125,7 +125,7 @@ if(catSections.length && catChips.length){
           <div class="mega-pricing">
             <span class="mega-price">${formatBRL(priceNow)}</span>
             ${hasOld ? `<span class="mega-price-old">${formatBRL(product.oldPrice)}</span>` : ''}
-            ${pct ? `<span class="mega-price-note">-${pct}% vs. preço normal</span>` : ''}
+            ${pct ? `<span class="mega-discount">-${pct}%</span>` : ''}
             ${installment ? `<span class="mega-installment">${installment.count}x de ${formatBRL(installment.value)} sem juros</span>` : ''}
             ${cb ? `<span class="mega-price-note">Com cashback aplicado: ${formatBRL(cb.finalPrice)}</span>` : ''}
           </div>
