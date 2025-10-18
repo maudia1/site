@@ -61,11 +61,14 @@
   .product-grid{display:grid;gap:16px}
   .product-details{display:grid;gap:8px}
   .product-item{display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:18px;background:rgba(15,23,42,.72);border:1px solid rgba(148,163,184,.22);box-shadow:0 24px 48px rgba(15,23,42,.45)}
+  .product-item--offline{border-style:dashed;opacity:.72}
   .product-item h4{margin:0;font-size:1.2rem}
   .product-meta{margin:0;font-size:.95rem;color:rgba(226,232,240,.75)}
   .product-price{margin:0;font-size:1.45rem;font-weight:700;color:#facc15}
   .product-price .old-price{margin-left:10px;font-size:.95rem;color:rgba(226,232,240,.55);text-decoration:line-through;font-weight:400}
   .product-tags{margin:0;font-size:.85rem;color:rgba(226,232,240,.65)}
+  .product-status{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.78rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+  .product-status--offline{background:rgba(220,38,38,.16);color:#fecaca;border:1px solid rgba(248,113,113,.35)}
   .product-actions{display:flex;flex-wrap:wrap;gap:10px}
   .product-actions .btn{flex:1 1 140px;min-width:120px}
   .muted.small{font-size:.9rem}
@@ -589,7 +592,7 @@ function renderHeroSelect(){
 }
 
 function refreshHeroOptions(){
-  heroState.options=Array.isArray(window._serverProducts)?window._serverProducts:[];
+  heroState.options=activeServerProducts();
   renderHeroSelect();
 }
 
@@ -679,7 +682,7 @@ function renderPromoSelects(){
 }
 
 function refreshPromoOptions(){
-  promoState.options=Array.isArray(window._serverProducts)?window._serverProducts:[];
+  promoState.options=activeServerProducts();
   renderPromoSelects();
 }
 
@@ -715,7 +718,7 @@ function renderHomeSelects(){
   selects.forEach(sel=>{ const slot=Number(sel.dataset.homeSlot); const desired=homeState.slots[slot]||""; sel.innerHTML=html; sel.value=desired; if(sel.value!==desired){ sel.value=""; } });
   updateHomePreview();
 }
-function refreshHomeOptions(){ homeState.options=Array.isArray(window._serverProducts)?window._serverProducts:[]; renderHomeSelects(); }
+function refreshHomeOptions(){ homeState.options=activeServerProducts(); renderHomeSelects(); }
 async function loadHomeSlots(){
   try{
     const res=await fetch('/api/home');
@@ -807,7 +810,9 @@ async function savePromos(){
 }
 
 async function list(){
-  const r=await fetch("/api/products");
+  const url=new URL("/api/products",location.origin);
+  url.searchParams.set("includeInactive","1");
+  const r=await fetch(url.toString());
   const data=await r.json();
   window._serverProducts = data; // cache para sync
   const input=$("#flt");
@@ -853,10 +858,14 @@ async function list(){
         const cards=items.map(p=>{
           const tagText=Array.isArray(p.tags)?p.tags.join(", "):String(p.tags||"");
           const oldPrice=Number.isFinite(Number(p.oldPrice)) && Number(p.oldPrice)>0 ? fmt(p.oldPrice) : "";
+          const offline=p.isActive===false;
+          const statusBadge=offline?'<span class="product-status product-status--offline">Offline</span>':'';
+          const toggleLabel=offline?"Colocar no catálogo":"Tirar do catálogo";
           return `
-            <article class="product-item" data-product-id="${esc(p.id)}">
+            <article class="product-item${offline?" product-item--offline":""}" data-product-id="${esc(p.id)}">
               <div class="product-details">
                 <h4>${esc(p.name)}</h4>
+                ${statusBadge}
                 <p class="product-meta">${esc(p.brand||"Sem marca")}</p>
                 <p class="product-price">${fmt(p.price)}${oldPrice?` <span class="old-price">${oldPrice}</span>`:""}</p>
                 ${tagText?`<p class="product-tags">Tags: ${esc(tagText)}</p>`:""}
@@ -864,6 +873,7 @@ async function list(){
               <div class="product-actions">
                 <button class="btn" onclick="fill('${p.id}')">Editar</button>
                 <button class="btn" onclick="dup('${p.id}')">Duplicar</button>
+                <button class="btn" onclick="toggleProductVisibility('${p.id}', ${offline?"true":"false"})">${toggleLabel}</button>
                 <button class="btn" onclick="delp('${p.id}')">Excluir</button>
               </div>
             </article>`;
@@ -887,6 +897,10 @@ async function list(){
   renderServerSnapshot();
   renderLocalSnapshot();
   return data;
+}
+
+function activeServerProducts(){
+  return Array.isArray(window._serverProducts)?window._serverProducts.filter(p=>p.isActive!==false):[];
 }
 $("#flt").addEventListener("input",()=>list());
 categoryFilterSelect?.addEventListener("change",e=>{updateAdminCaseFilterVisibility(e.target.value);list();});
@@ -1102,6 +1116,26 @@ async function delp(id){
   if(r.ok) await list();
 }
 
+async function toggleProductVisibility(id, makeActive){
+  const desired=Boolean(makeActive);
+  const actionText=desired?"colocar este produto no catálogo novamente":"tirar este produto do catálogo";
+  if(!confirm(`Tem certeza que deseja ${actionText}?`)) return;
+  const msg=$("#msg");
+  if(msg) msg.textContent="Atualizando visibilidade...";
+  try{
+    const res=await fetch(`/api/products/${encodeURIComponent(id)}`,{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({isActive:desired})
+    });
+    if(!res.ok) throw new Error("http "+res.status);
+    if(msg) msg.textContent=desired?"Produto reativado no catálogo.":"Produto ocultado do catálogo.";
+    await list();
+  }catch(err){
+    if(msg) msg.textContent="Não foi possível atualizar a visibilidade.";
+  }
+}
+
 function renderServerSnapshot(){
   const summary=$("#server-summary");
   const log=$("#server-log");
@@ -1115,7 +1149,10 @@ function renderServerSnapshot(){
     if(!list.length){
       log.textContent="Cadastre produtos usando o formulário ao lado.";
     }else{
-      log.textContent=list.map(p=>`• ${p.name} — ${p.brand||'Sem marca'} — ${p.category||'Sem categoria'} — ${maybeFmt(p.price)}`).join("\n");
+      log.textContent=list.map(p=>{
+        const status=p.isActive===false?" (offline)":"";
+        return `• ${p.name} — ${p.brand||'Sem marca'} — ${p.category||'Sem categoria'} — ${maybeFmt(p.price)}${status}`;
+      }).join("\n");
     }
   }
 }

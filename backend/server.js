@@ -43,12 +43,22 @@ CREATE TABLE IF NOT EXISTS products (
   images TEXT,
   description TEXT,
   specs TEXT,
+  isActive INTEGER NOT NULL DEFAULT 1,
   createdAt TEXT DEFAULT CURRENT_TIMESTAMP
 );
 `);
 
 try {
   db.prepare("ALTER TABLE products ADD COLUMN brand TEXT").run();
+} catch (err) {
+  if (!(err && /duplicate column name/i.test(err.message || ""))) {
+    throw err;
+  }
+}
+
+try {
+  db.prepare("ALTER TABLE products ADD COLUMN isActive INTEGER DEFAULT 1").run();
+  db.prepare("UPDATE products SET isActive = 1 WHERE isActive IS NULL").run();
 } catch (err) {
   if (!(err && /duplicate column name/i.test(err.message || ""))) {
     throw err;
@@ -123,6 +133,11 @@ function requireAdmin(req, res, next) {
   return res.status(401).send("Authentication required");
 }
 
+const isAdminRequest = (req) => {
+  const creds = parseBasicAuth(req.headers["authorization"]);
+  return Boolean(creds && creds.user === ADMIN_USER && creds.pass === ADMIN_PASS);
+};
+
 /* === Upload (restrito e com validação) === */
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, uploadsDir),
@@ -168,6 +183,28 @@ const safeJsonObject = (value) => {
   } catch {
     return {};
   }
+};
+
+const normalizeIsActiveInput = (value) => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (typeof value === "number") return value ? 1 : 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return null;
+    if (["1", "true", "on", "ativo", "active", "online"].includes(normalized)) return 1;
+    if (["0", "false", "off", "inativo", "inactive", "offline", "of"].includes(normalized)) return 0;
+    const num = Number(normalized);
+    if (Number.isFinite(num)) return num ? 1 : 0;
+    return null;
+  }
+  return null;
+};
+
+const isRowActive = (row) => {
+  const flag = row?.isActive;
+  if (flag === null || flag === undefined) return true;
+  return Number(flag) !== 0;
 };
 
 async function supabaseEnsureVisitorRecord(phone, name) {
@@ -281,15 +318,15 @@ async function supabaseDeleteProduct(id) {
 app.get("/api/products", (req, res) => {
   const q = normalizeText(req.query.q || "");
   const cat = slugify(req.query.category || "");
-  const rows = db.prepare("SELECT * FROM products ORDER BY createdAt DESC").all();
+  const admin = isAdminRequest(req);
+  const includeInactiveParam = String(req.query.includeInactive ?? req.query.includeOffline ?? "").trim().toLowerCase();
+  const includeInactive = admin && (includeInactiveParam === "1" || includeInactiveParam === "true");
+  const sql = includeInactive
+    ? "SELECT * FROM products ORDER BY createdAt DESC"
+    : "SELECT * FROM products WHERE COALESCE(isActive, 1) = 1 ORDER BY createdAt DESC";
+  const rows = db.prepare(sql).all();
 
-  let list = rows.map(row => ({
-    ...row,
-    price: fromCents(row.price),
-    oldPrice: row.oldPrice ? fromCents(row.oldPrice) : null,
-    images: safeJsonArray(row.images),
-    specs: safeJsonObject(row.specs)
-  }));
+  let list = rows.map(normalizeProductRow);
 
   if (q) {
     const matches = (value) => normalizeText(value).includes(q);
@@ -310,14 +347,15 @@ const normalizeProductRow = (row) => ({
   price: fromCents(row.price),
   oldPrice: row.oldPrice ? fromCents(row.oldPrice) : null,
   images: safeJsonArray(row.images),
-  specs: safeJsonObject(row.specs)
+  specs: safeJsonObject(row.specs),
+  isActive: isRowActive(row)
 });
 
 app.get("/api/featured", (_req, res) => {
   const rows = db.prepare(`
     SELECT f.slot, f.productId, p.name, p.price, p.oldPrice
     FROM featured_products f
-    LEFT JOIN products p ON p.id = f.productId
+    LEFT JOIN products p ON p.id = f.productId AND COALESCE(p.isActive, 1) = 1
     ORDER BY f.slot
   `).all();
 
@@ -345,7 +383,7 @@ app.get("/api/featured-products", (_req, res) => {
   const rows = db.prepare(`
     SELECT p.*
     FROM featured_products f
-    JOIN products p ON p.id = f.productId
+    JOIN products p ON p.id = f.productId AND COALESCE(p.isActive, 1) = 1
     ORDER BY f.slot
   `).all();
 
@@ -358,7 +396,7 @@ app.get("/api/home", (_req, res) => {
   const rows = db.prepare(`
     SELECT h.slot, h.productId, p.name, p.price, p.oldPrice
     FROM home_products h
-    LEFT JOIN products p ON p.id = h.productId
+    LEFT JOIN products p ON p.id = h.productId AND COALESCE(p.isActive, 1) = 1
     ORDER BY h.slot
   `).all();
 
@@ -385,7 +423,7 @@ app.get("/api/home-products", (_req, res) => {
   const rows = db.prepare(`
     SELECT p.*
     FROM home_products h
-    JOIN products p ON p.id = h.productId
+    JOIN products p ON p.id = h.productId AND COALESCE(p.isActive, 1) = 1
     ORDER BY h.slot
   `).all();
   const list = rows.map(normalizeProductRow);
@@ -396,7 +434,7 @@ app.get("/api/hero", (_req, res) => {
   const row = db.prepare(`
     SELECT h.productId, p.*
     FROM hero_product h
-    LEFT JOIN products p ON p.id = h.productId
+    LEFT JOIN products p ON p.id = h.productId AND COALESCE(p.isActive, 1) = 1
     WHERE h.id = 1
   `).get();
 
@@ -412,7 +450,7 @@ app.get("/api/hero-product", (_req, res) => {
   const row = db.prepare(`
     SELECT p.*
     FROM hero_product h
-    JOIN products p ON p.id = h.productId
+    JOIN products p ON p.id = h.productId AND COALESCE(p.isActive, 1) = 1
     WHERE h.id = 1 AND h.productId IS NOT NULL
   `).get();
 
@@ -540,8 +578,8 @@ app.put("/api/home", requireAdmin, (req, res) => {
 
   for (const item of normalized) {
     if (!item.productId) continue;
-    const exists = db.prepare("SELECT 1 FROM products WHERE id = ?").get(item.productId);
-    if (!exists) return res.status(400).json({ error: "invalid_product", slot: item.slot });
+    const exists = db.prepare("SELECT isActive FROM products WHERE id = ?").get(item.productId);
+    if (!exists || !isRowActive(exists)) return res.status(400).json({ error: "invalid_product", slot: item.slot });
   }
 
   const stmt = db.prepare(`
@@ -574,8 +612,8 @@ app.put("/api/featured", requireAdmin, (req, res) => {
 
   for (const item of normalized) {
     if (!item.productId) continue;
-    const exists = db.prepare("SELECT 1 FROM products WHERE id = ?").get(item.productId);
-    if (!exists) {
+    const exists = db.prepare("SELECT isActive FROM products WHERE id = ?").get(item.productId);
+    if (!exists || !isRowActive(exists)) {
       return res.status(400).json({ error: "invalid_product", slot: item.slot });
     }
   }
@@ -600,8 +638,8 @@ app.put("/api/featured", requireAdmin, (req, res) => {
 app.put("/api/hero", requireAdmin, (req, res) => {
   const rawId = typeof req.body?.productId === "string" ? req.body.productId.trim() : "";
   if (rawId) {
-    const exists = db.prepare("SELECT 1 FROM products WHERE id = ?").get(rawId);
-    if (!exists) return res.status(400).json({ error: "invalid_product" });
+    const exists = db.prepare("SELECT isActive FROM products WHERE id = ?").get(rawId);
+    if (!exists || !isRowActive(exists)) return res.status(400).json({ error: "invalid_product" });
   }
 
   db.prepare(`
@@ -613,7 +651,7 @@ app.put("/api/hero", requireAdmin, (req, res) => {
   const row = db.prepare(`
     SELECT h.productId, p.*
     FROM hero_product h
-    LEFT JOIN products p ON p.id = h.productId
+    LEFT JOIN products p ON p.id = h.productId AND COALESCE(p.isActive, 1) = 1
     WHERE h.id = 1
   `).get();
 
@@ -623,13 +661,11 @@ app.put("/api/hero", requireAdmin, (req, res) => {
 
 /* LER */
 app.get("/api/products/:id", (req, res) => {
-  const p = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
-  if (!p) return res.status(404).json({ error: "not_found" });
-  p.price = fromCents(p.price);
-  p.oldPrice = p.oldPrice ? fromCents(p.oldPrice) : null;
-  p.images = safeJsonArray(p.images);
-  p.specs = safeJsonObject(p.specs);
-  res.json(p);
+  const row = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
+  const admin = isAdminRequest(req);
+  if (!row || (!admin && !isRowActive(row))) return res.status(404).json({ error: "not_found" });
+  const product = normalizeProductRow(row);
+  res.json(product);
 });
 
 /* CRIAR — sem auth */
@@ -641,16 +677,18 @@ app.post("/api/products", requireAdmin, (req, res) => {
   } = req.body;
 
   const brandValue = typeof brand === "string" ? brand.trim() : "";
+  const isActiveFlag = normalizeIsActiveInput(req.body?.isActive);
+  const isActive = isActiveFlag == null ? 1 : isActiveFlag;
 
   if (!name || !category || !brandValue || price == null) return res.status(400).json({ error: "missing_fields" });
 
   db.prepare(`
-    INSERT INTO products (id, name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs, isActive)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, name, subtitle || null, toCents(price), oldPrice ? toCents(oldPrice) : null,
     category, brandValue || null, (Array.isArray(tags) ? tags.join(",") : (tags || null)),
-    image || null, JSON.stringify(images || []), description || null, JSON.stringify(specs || {})
+    image || null, JSON.stringify(images || []), description || null, JSON.stringify(specs || {}), isActive
   );
   // Envia para Supabase de forma assíncrona (não bloqueia a resposta)
   supabaseUpsertProduct({
@@ -673,6 +711,8 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
 
   const { name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs } = req.body;
   const brandValue = typeof brand === "string" ? brand.trim() : null;
+  const hasIsActive = Object.prototype.hasOwnProperty.call(req.body, "isActive");
+  const isActiveFlag = hasIsActive ? normalizeIsActiveInput(req.body.isActive) : null;
 
   // Atualização dinâmica: preserva oldPrice quando ausente; permite limpar quando null
   const sets = [
@@ -707,6 +747,10 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
     description ?? null,
     specs ? JSON.stringify(specs) : null
   );
+  if (hasIsActive) {
+    sets.push("isActive = COALESCE(?, isActive)");
+    params.push(isActiveFlag == null ? null : isActiveFlag);
+  }
   const sql = `UPDATE products SET ${sets.join(",\n      ")} WHERE id = ?`;
   db.prepare(sql).run(...params, id);
   try {
