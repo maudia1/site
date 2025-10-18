@@ -15,7 +15,7 @@
     </a>
     <div class="nav-shell">
       <nav id="primary-nav" class="nav" data-nav-menu aria-label="Navega&ccedil;&atilde;o principal">
-      <a href="/">In&iacute;cio</a>
+        <a href="/">In&iacute;cio</a>
         <a href="/catalogo">Produtos</a>
         <a href="/#contato">Contato</a>
       </nav>
@@ -41,7 +41,7 @@
 <main class="product-page">
   <div class="iw-container">
     <nav class="breadcrumb" aria-label="Caminho">
-      <a href="/">In&iacute;cio</a>
+      <a href="/">Home</a>
       <span aria-hidden="true">/</span>
       <a href="/catalogo">Cat&aacute;logo</a>
       <span aria-hidden="true">/</span>
@@ -70,7 +70,7 @@
         <div class="product-actions">
           <a id="product-cta" class="btn btn-cta" href="#" target="_blank" rel="noopener">Comprar agora</a>
           <button id="product-add-cart" class="btn btn-ghost" type="button" data-add-to-cart>Adicionar ao carrinho</button>
-          <a class="btn btn-ghost" href="/catalogo">Voltar para o cat&aacute;logo</a>
+          <a class="btn btn-ghost" href="/catalogo">Voltar ao cat&aacute;logo</a>
         </div>
       </article>
     </section>
@@ -190,19 +190,19 @@
   }
 
   if(!id){
-    statusEl.textContent = 'Não encontramos este produto.';
+    statusEl.textContent = 'Produto n\u00e3o encontrado.';
   }else{
     loadProduct(id).catch(err=>{
       console.error(err);
-      statusEl.textContent = 'Não conseguimos carregar os detalhes do produto.';
+      statusEl.textContent = 'N\u00e3o foi poss\u00edvel carregar o produto.';
     });
   }
 
   async function loadProduct(productId){
-    statusEl.textContent = 'Carregando detalhes do produto...';
+    statusEl.textContent = 'Carregando produto...';
     const res = await fetch(`/api/products/${encodeURIComponent(productId)}`);
     if(!res.ok){
-      statusEl.innerHTML = 'Produto não encontrado. <a href="/catalogo">Voltar para o catálogo</a>';
+      statusEl.innerHTML = 'Produto n\u00e3o encontrado. <a href="/catalogo">Voltar ao cat&aacute;logo</a>';
       return;
     }
     const product = await res.json();
@@ -253,7 +253,7 @@
       descriptionEl.classList.remove('empty');
       descriptionShort.hidden = false;
     }else{
-      descriptionEl.textContent = 'Ainda não temos uma descrição detalhada para este item.';
+      descriptionEl.textContent = 'Produto sem descri\u00e7\u00e3o detalhada.';
       descriptionEl.classList.add('empty');
       descriptionShort.hidden = true;
     }

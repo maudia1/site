@@ -90,8 +90,8 @@ if(catSections.length && catChips.length){
         <article class="mega-card mega-card--placeholder">
           <div class="mega-copy">
             <span class="mega-pill" aria-hidden="true">Mega oferta</span>
-            <h1 class="mega-title">Selecione o seu destaque da semana</h1>
-            <p class="mega-subtitle">Escolha, pelo painel administrativo, qual item merece protagonizar a vitrine principal.</p>
+            <h1 class="mega-title">Escolha um produto de destaque</h1>
+            <p class="mega-subtitle">Defina o super produto da semana no painel administrativo para vê-lo aqui na home.</p>
           </div>
           <div class="mega-media" aria-hidden="true">
             <div class="mega-media-ph"></div>

@@ -55,7 +55,7 @@ function computeInstallments(amount){
 init().catch(err=>{
   console.error(err);
   countEl.textContent = "Erro ao carregar produtos.";
-  grid.innerHTML = `<div class="muted">API indisponível no momento.</div>`;
+  grid.innerHTML = `<div class="muted">API indisponível.</div>`;
 });
 
 window.addEventListener(CASHBACK_EVENT, (event)=>{
@@ -434,8 +434,8 @@ function getFiltered(){
 
 function render(){
   const items = getFiltered();
-  countEl.textContent = `${items.length} produto${items.length===1?"":"s"} no catálogo.`;
-  grid.innerHTML = items.length ? items.map(cardHTML).join("") : `<div class="muted">Nenhum produto corresponde aos filtros.</div>`;
+  countEl.textContent = `${items.length} produto${items.length===1?"":"s"} encontrados.`;
+  grid.innerHTML = items.length ? items.map(cardHTML).join("") : `<div class="muted">Nada encontrado.</div>`;
 }
 
 function cardHTML(p){
