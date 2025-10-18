@@ -73,6 +73,17 @@ CREATE TABLE IF NOT EXISTS home_products (
 );
 `);
 
+// Produto "mega destaque" da home (1 posição fixa)
+db.exec(`
+CREATE TABLE IF NOT EXISTS hero_product (
+  id INTEGER PRIMARY KEY CHECK(id = 1),
+  productId TEXT,
+  updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(productId) REFERENCES products(id) ON DELETE SET NULL
+);
+`);
+db.prepare(`INSERT OR IGNORE INTO hero_product (id, productId) VALUES (1, NULL)`).run();
+
 // CORS configurável: restringe à origem definida se houver
 if (CORS_ORIGIN && CORS_ORIGIN !== "*") {
   app.use(cors({ origin: CORS_ORIGIN }));
@@ -323,6 +334,35 @@ app.get("/api/home-products", (_req, res) => {
   res.json(list);
 });
 
+app.get("/api/hero", (_req, res) => {
+  const row = db.prepare(`
+    SELECT h.productId, p.*
+    FROM hero_product h
+    LEFT JOIN products p ON p.id = h.productId
+    WHERE h.id = 1
+  `).get();
+
+  if (!row) {
+    return res.json({ productId: null, product: null });
+  }
+
+  const product = row.productId && row.name ? normalizeProductRow(row) : null;
+  res.json({ productId: row.productId || null, product });
+});
+
+app.get("/api/hero-product", (_req, res) => {
+  const row = db.prepare(`
+    SELECT p.*
+    FROM hero_product h
+    JOIN products p ON p.id = h.productId
+    WHERE h.id = 1 AND h.productId IS NOT NULL
+  `).get();
+
+  if (!row) return res.json(null);
+
+  res.json(normalizeProductRow(row));
+});
+
 // Consulta Supabase view "vw_cashback" por telefone (apenas servidor)
 app.get("/api/cashback", async (req, res) => {
   try{
@@ -495,6 +535,30 @@ app.put("/api/featured", requireAdmin, (req, res) => {
   tx(normalized);
 
   res.json({ ok: true, slots: normalized });
+});
+
+app.put("/api/hero", requireAdmin, (req, res) => {
+  const rawId = typeof req.body?.productId === "string" ? req.body.productId.trim() : "";
+  if (rawId) {
+    const exists = db.prepare("SELECT 1 FROM products WHERE id = ?").get(rawId);
+    if (!exists) return res.status(400).json({ error: "invalid_product" });
+  }
+
+  db.prepare(`
+    INSERT INTO hero_product (id, productId, updatedAt)
+    VALUES (1, NULLIF(?, ''), CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET productId = excluded.productId, updatedAt = CURRENT_TIMESTAMP
+  `).run(rawId);
+
+  const row = db.prepare(`
+    SELECT h.productId, p.*
+    FROM hero_product h
+    LEFT JOIN products p ON p.id = h.productId
+    WHERE h.id = 1
+  `).get();
+
+  const product = row?.productId && row?.name ? normalizeProductRow(row) : null;
+  res.json({ ok: true, productId: row?.productId || null, product });
 });
 
 /* LER */

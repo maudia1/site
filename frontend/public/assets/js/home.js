@@ -71,14 +71,78 @@ if(catSections.length && catChips.length){
 (async function(){
   const featuredGrid = document.getElementById('featured-grid');
   const catalogGrid = document.getElementById('catalog-grid');
-  if(!featuredGrid && !catalogGrid) return;
+  const heroHighlight = document.getElementById('hero-highlight');
+  if(!featuredGrid && !catalogGrid && !heroHighlight) return;
 
   const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
   const CASHBACK_EVENT = 'iw-cashback-update';
   let cashbackInfo = readCashbackFromStorage();
   let featuredList = [];
+  let heroProduct = null;
   let catalogList = [];
   let catalogEmptyHtml = '';
+
+  const renderHero = ()=>{
+    if(!heroHighlight) return;
+    const product = heroProduct;
+    if(!product){
+      heroHighlight.innerHTML = `
+        <article class="mega-card mega-card--placeholder">
+          <div class="mega-copy">
+            <span class="mega-pill" aria-hidden="true">Mega oferta</span>
+            <h1 class="mega-title">Escolha um produto de destaque</h1>
+            <p class="mega-subtitle">Defina o super produto da semana no painel administrativo para vê-lo aqui na home.</p>
+          </div>
+          <div class="mega-media" aria-hidden="true">
+            <div class="mega-media-ph"></div>
+          </div>
+        </article>`;
+      return;
+    }
+
+    const priceNow = Number(product.price) || 0;
+    const hasOld = Number.isFinite(Number(product.oldPrice)) && Number(product.oldPrice) > priceNow;
+    const pct = hasOld ? Math.round((1 - priceNow / Number(product.oldPrice)) * 100) : 0;
+    const cb = computeCashback(priceNow);
+    const installment = computeInstallments(priceNow);
+    const savingsFromOld = hasOld ? Number(product.oldPrice) - priceNow : 0;
+    const savingsFromCb = cb ? cb.applied : 0;
+    const totalSavings = Math.max(savingsFromOld, savingsFromCb);
+    const payload = encodeCartPayload({
+      id:product.id,
+      name:product.name,
+      price:priceNow,
+      image:product.image || '',
+      url:`/produto/${encodeURIComponent(product.id)}`
+    });
+
+    heroHighlight.innerHTML = `
+      <article class="mega-card">
+        <div class="mega-copy">
+          <span class="mega-pill">Mega oferta</span>
+          <h1 class="mega-title">${escapeHtml(product.name)}</h1>
+          ${product.subtitle ? `<p class="mega-subtitle">${escapeHtml(product.subtitle)}</p>` : ''}
+          <div class="mega-pricing">
+            <span class="mega-price">${formatBRL(priceNow)}</span>
+            ${hasOld ? `<span class="mega-price-old">${formatBRL(product.oldPrice)}</span>` : ''}
+            ${pct ? `<span class="mega-price-note">-${pct}% vs. preço normal</span>` : ''}
+            ${installment ? `<span class="mega-installment">${installment.count}x de ${formatBRL(installment.value)} sem juros</span>` : ''}
+            ${cb ? `<span class="mega-price-note">Com cashback aplicado: ${formatBRL(cb.finalPrice)}</span>` : ''}
+          </div>
+          <div class="mega-actions">
+            <a class="btn btn-primary" href="/produto/${encodeURIComponent(product.id)}">Aproveitar agora</a>
+            <button class="btn btn-ghost" type="button" data-product-cart="${payload}">Adicionar ao carrinho</button>
+          </div>
+          <div class="mega-meta">
+            <span>Oferta exclusiva para quem ama Apple — estoque limitado.</span>
+            ${totalSavings>0 ? `<span>Economize ${formatBRL(totalSavings)} nesta seleção especial.</span>` : ''}
+          </div>
+        </div>
+        <div class="mega-media">
+          <img src="${product.image}" alt="${escapeHtml(product.name)}">
+        </div>
+      </article>`;
+  };
 
   const renderFeatured = ()=>{
     if(featuredGrid){
@@ -95,6 +159,7 @@ if(catSections.length && catChips.length){
   };
 
   const rerender = ()=>{
+    renderHero();
     renderFeatured();
     renderCatalog();
   };
@@ -111,6 +176,15 @@ if(catSections.length && catChips.length){
       rerender();
     }
   });
+
+  const fallbackHero = {
+    id:'iphone-15-pro-max-titanio',
+    name:'iPhone 15 Pro Max 256GB Titânio Natural',
+    subtitle:'A potência máxima do chip A17 Pro e câmera com zoom óptico 5x',
+    price:9799,
+    oldPrice:10499,
+    image:'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/iphone-15-pro-storage-select-202309-6-1inch_Natural_Titanium?wid=572&hei=572&fmt=jpeg&qlt=95&.v=1693084312400'
+  };
 
   const fallbackProducts = [
     {
@@ -147,13 +221,17 @@ if(catSections.length && catChips.length){
     }
   ];
 
-  const [featuredFromApi, curated, catalog] = await Promise.all([
+  const [heroFromApi, featuredFromApi, curated, catalog] = await Promise.all([
+    loadHeroFromApi(),
     loadFeaturedFromApi(),
     loadHomeCurated(),
     loadCatalogFromApi()
   ]);
 
-  const hasAnyServerProduct = featuredFromApi.length || curated.length || catalog.length;
+  const hasAnyServerProduct = Boolean(heroFromApi || featuredFromApi.length || curated.length || catalog.length);
+
+  heroProduct = heroFromApi || (!hasAnyServerProduct ? fallbackHero : null);
+  renderHero();
 
   const featuredToShow = featuredFromApi.length
     ? featuredFromApi.slice(0,3)
@@ -164,6 +242,7 @@ if(catSections.length && catChips.length){
 
   if(catalogGrid){
     const featuredIds = new Set(featuredToShow.map(p=>p.id));
+    if(heroProduct?.id) featuredIds.add(heroProduct.id);
     const baseList = curated.length ? curated : catalog;
     let catalogToShow = baseList.filter(p=>!featuredIds.has(p.id));
 
@@ -257,6 +336,20 @@ if(catSections.length && catChips.length){
       }
     }catch{}
     return [];
+  }
+
+  async function loadHeroFromApi(){
+    try{
+      const res = await fetch('/api/hero-product');
+      if(res.ok){
+        const data = await res.json();
+        if(data){
+          const [normalized] = normalizeProducts([data]);
+          return normalized || null;
+        }
+      }
+    }catch{}
+    return null;
   }
 
   function normalizeProducts(arr){

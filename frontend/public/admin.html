@@ -78,6 +78,15 @@
   .promo-preview{margin-top:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
   .promo-preview ul{margin:0;padding-left:20px;display:grid;gap:6px}
   .promo-preview li{font-size:.92rem}
+  .promo-form--single .promo-grid{grid-template-columns:1fr}
+  .hero-admin-grid{display:grid;gap:10px}
+  .mega-admin-preview{margin-top:12px;padding:14px;border-radius:14px;background:rgba(15,23,42,.55);border:1px solid rgba(148,163,184,.2);box-shadow:0 20px 40px rgba(15,23,42,.38);display:grid;gap:10px}
+  .mega-admin-preview p{margin:0}
+  .mega-admin-card{display:grid;gap:8px}
+  .mega-admin-title{font-weight:700;font-size:1.08rem;color:#f8fafc;margin:0}
+  .mega-admin-price{font-size:1.32rem;font-weight:700;color:#facc15}
+  .mega-admin-old{margin-left:10px;font-size:.95rem;color:rgba(226,232,240,.6);text-decoration:line-through;font-weight:500}
+  .mega-admin-subtitle{margin:0;font-size:.92rem;color:rgba(226,232,240,.75)}
   .promo-actions{display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:6px}
   .promo-status{font-size:.9rem;color:rgba(255,255,255,.7)}
   .table-wrapper{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
@@ -256,6 +265,26 @@
       <pre class="log" id="sync-log"></pre>
       <div id="server-summary" class="muted small" style="margin-top:12px">Carregando produtos do servidor…</div>
       <pre class="log" id="server-log"></pre>
+    </section>
+
+    <section class="card" id="hero-card">
+      <h2>Mega produto da home</h2>
+      <p class="muted small">Selecione um único produto para ocupar o destaque gigante da página inicial.</p>
+      <form id="hero-form" class="promo-form promo-form--single">
+        <div class="promo-grid hero-admin-grid">
+          <div class="promo-item">
+            <label for="hero-select">Produto em destaque</label>
+            <select id="hero-select"></select>
+          </div>
+        </div>
+        <div class="mega-admin-preview" id="hero-preview" aria-live="polite">
+          <p class="muted small">Nenhum produto selecionado.</p>
+        </div>
+        <div class="promo-actions">
+          <span id="hero-msg" class="promo-status"></span>
+          <button type="submit" class="btn btn-primary" id="hero-save">Salvar mega oferta</button>
+        </div>
+      </form>
     </section>
 
     <section class="card" id="promo-card">
@@ -515,7 +544,7 @@ function normalizeBrandValue(value){
   return match || str;
 }
 
-function renderBrandOptions(selected=""){
+function renderBrandOptions(selected=""){ 
   const select=$("#brand");
   if(!select) return;
   const normalized=normalizeBrandValue(selected);
@@ -536,6 +565,88 @@ function renderBrandOptions(selected=""){
     select.value="";
   }
 }
+
+const heroState={productId:null,options:[]};
+
+function heroSelectElement(){
+  return document.getElementById('hero-select');
+}
+
+function renderHeroSelect(){
+  const select=heroSelectElement();
+  if(!select) return;
+  const base=['<option value="">— Nenhum —</option>'];
+  const sorted=[...(heroState.options||[])].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  sorted.forEach(p=>base.push(`<option value="${esc(p.id)}">${esc(p.name)} — ${fmt(p.price)}</option>`));
+  const html=base.join('');
+  const desired=heroState.productId||"";
+  select.innerHTML=html;
+  select.value=desired;
+  if(select.value!==desired){
+    select.value="";
+  }
+  updateHeroPreview();
+}
+
+function refreshHeroOptions(){
+  heroState.options=Array.isArray(window._serverProducts)?window._serverProducts:[];
+  renderHeroSelect();
+}
+
+async function loadHeroSlot(){
+  try{
+    const res=await fetch('/api/hero');
+    if(res.ok){
+      const data=await res.json();
+      heroState.productId=data?.productId||null;
+    }
+  }catch{}
+  renderHeroSelect();
+}
+
+function updateHeroPreview(){
+  const wrap=$("#hero-preview");
+  if(!wrap) return;
+  const product=(heroState.options||[]).find(p=>p.id===heroState.productId);
+  if(!product){
+    wrap.innerHTML='<p class="muted small">Nenhum produto selecionado.</p>';
+    return;
+  }
+  const hasOld=Number.isFinite(Number(product.oldPrice)) && Number(product.oldPrice)>0;
+  wrap.innerHTML=`
+    <article class="mega-admin-card">
+      <p class="mega-admin-title">${esc(product.name)}</p>
+      <p class="mega-admin-price">${fmt(product.price)}${hasOld?` <span class="mega-admin-old">${fmt(product.oldPrice)}</span>`:''}</p>
+      ${product.subtitle?`<p class="mega-admin-subtitle">${esc(product.subtitle)}</p>`:''}
+    </article>`;
+}
+
+heroSelectElement()?.addEventListener('change',ev=>{
+  const value=ev.target.value||"";
+  heroState.productId=value||null;
+  updateHeroPreview();
+});
+
+$("#hero-form")?.addEventListener('submit',async ev=>{
+  ev.preventDefault();
+  const msg=$("#hero-msg");
+  const btn=$("#hero-save");
+  if(btn) btn.disabled=true;
+  if(msg) msg.textContent='Salvando...';
+  try{
+    const res=await fetch('/api/hero',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId:heroState.productId})});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    heroState.productId=data?.productId||null;
+    if(msg) msg.textContent='Mega oferta atualizada!';
+    updateHeroPreview();
+  }catch(err){
+    if(msg) msg.textContent='Erro ao salvar destaque.';
+  }finally{
+    if(btn) btn.disabled=false;
+    renderHeroSelect();
+  }
+});
 
 const promoState={
   slots:{1:null,2:null,3:null},
@@ -771,6 +882,7 @@ async function list(){
     }
   }
   refreshPromoOptions();
+  refreshHeroOptions();
   refreshHomeOptions();
   renderServerSnapshot();
   renderLocalSnapshot();
@@ -1166,6 +1278,7 @@ function toServerPayload(p){
 }
 
 /* boot */
+loadHeroSlot();
 loadFeaturedSlots();
 loadHomeSlots();
 list();
