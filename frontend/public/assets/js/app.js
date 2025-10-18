@@ -486,7 +486,7 @@ function cardHTML(p){
         </div>` : ""}
       </div>
       <div class="product-actions">
-        <a class="btn btn-primary" href="/produto/${encodeURIComponent(p.id)}">Comprar</a>
+        <a class="btn btn-cta" href="/produto/${encodeURIComponent(p.id)}">Comprar</a>
         <button class="btn btn-ghost" type="button" data-product-cart="${payload}">Adicionar ao carrinho</button>
       </div>
     </div>

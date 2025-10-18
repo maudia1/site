@@ -130,7 +130,7 @@ if(catSections.length && catChips.length){
             ${cb ? `<span class="mega-price-note">Com cashback aplicado: ${formatBRL(cb.finalPrice)}</span>` : ''}
           </div>
           <div class="mega-actions">
-            <a class="btn btn-primary" href="/produto/${encodeURIComponent(product.id)}">Aproveitar agora</a>
+            <a class="btn btn-cta" href="/produto/${encodeURIComponent(product.id)}">Aproveitar agora</a>
             <button class="btn btn-ghost" type="button" data-product-cart="${payload}">Adicionar ao carrinho</button>
           </div>
           <div class="mega-meta">
@@ -302,7 +302,7 @@ if(catSections.length && catChips.length){
           </div>`:''}
         </div>
         <div class="product-actions">
-          <a class="btn btn-primary" href="/produto/${encodeURIComponent(p.id)}">Comprar</a>
+          <a class="btn btn-cta" href="/produto/${encodeURIComponent(p.id)}">Comprar</a>
           <button class="btn btn-ghost" type="button" data-product-cart="${payload}">Adicionar ao carrinho</button>
         </div>
       </div>
