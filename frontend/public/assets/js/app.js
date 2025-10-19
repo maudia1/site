@@ -4,7 +4,8 @@ const grid = $("#product-grid"), countEl=$("#count");
 const inputSearch=$("#search"), selectCategory=$("#category"), selectSort=$("#sort");
 const selectCaseDevice=$("#caseDeviceFilter");
 const caseFilterControl=document.querySelector('[data-case-filter]');
-const whatsappBtn=document.querySelector('[data-whatsapp-category]');
+const whatsappButtons=[...document.querySelectorAll('[data-whatsapp-category]')];
+const whatsappCtaContainer=document.querySelector('[data-whatsapp-container]');
 
 const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const PLACEHOLDER_IMAGE = "/assets/img/product-placeholder.svg";
@@ -236,13 +237,20 @@ function buildWhatsAppMessage(){
   return WHATSAPP_DEFAULT_MESSAGE;
 }
 function updateWhatsAppLink(){
-  if(!whatsappBtn) return;
   const label = getSelectedCategoryLabel();
   const message = buildWhatsAppMessage();
-  const url = `https://wa.me/${WHATSAPP_CONTACT}?text=${encodeURIComponent(message)}`;
-  whatsappBtn.href = url;
-  const ariaLabel = label ? `Ver mais opções de ${label} no WhatsApp` : 'Ver mais opções no WhatsApp';
-  whatsappBtn.setAttribute('aria-label', ariaLabel);
+  if(whatsappButtons.length){
+    const url = `https://wa.me/${WHATSAPP_CONTACT}?text=${encodeURIComponent(message)}`;
+    const ariaLabel = label ? `Ver mais opções de ${label} no WhatsApp` : 'Ver mais opções no WhatsApp';
+    whatsappButtons.forEach(btn=>{
+      btn.href = url;
+      btn.setAttribute('aria-label', ariaLabel);
+    });
+  }
+  if(whatsappCtaContainer){
+    const shouldShow = Boolean(label);
+    whatsappCtaContainer.hidden = !shouldShow;
+  }
 }
 function caseDeviceSlug(value){
   return slugify(value || '');
