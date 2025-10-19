@@ -387,6 +387,8 @@ body.iw-modal-open{overflow:hidden}
 }
 .catalog-controls input[type="search"]::placeholder{color:#9aa3a8}
 .control--search{grid-column:1 / -1}
+.control--cta{grid-column:1 / -1; margin-top:4px}
+.control--cta .btn{width:100%}
 
 @media (min-width:720px){
   .catalog-controls{grid-template-columns:1.2fr .6fr .6fr; gap:16px; padding:16px}
@@ -447,6 +449,17 @@ body.iw-modal-open{overflow:hidden}
   text-align:center; line-height:1.2; transition:background .18s ease, border-color .18s ease, transform .1s ease, box-shadow .18s ease;
 }
 .btn:hover{ border-color:rgba(255,255,255,.28); transform:translateY(-1px); box-shadow:0 12px 26px rgba(10,8,20,.35) }
+.btn-whatsapp{
+  background:linear-gradient(135deg,#25d366,#1ebe57);
+  color:#04140c;
+  border:none;
+  box-shadow:0 16px 36px rgba(23,167,83,.35);
+}
+.btn-whatsapp:hover{
+  border:none;
+  box-shadow:0 22px 44px rgba(23,167,83,.45);
+  transform:translateY(-2px);
+}
 .btn-primary{ background:linear-gradient(135deg,#fefefe,#cfcfcf); color:#050505; border-color:transparent; box-shadow:0 16px 40px rgba(0,0,0,.4) }
 .btn-primary:hover{ filter:brightness(1.02) }
 .btn-cta{

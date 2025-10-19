@@ -4,11 +4,14 @@ const grid = $("#product-grid"), countEl=$("#count");
 const inputSearch=$("#search"), selectCategory=$("#category"), selectSort=$("#sort");
 const selectCaseDevice=$("#caseDeviceFilter");
 const caseFilterControl=document.querySelector('[data-case-filter]');
+const whatsappBtn=document.querySelector('[data-whatsapp-category]');
 
 const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const PLACEHOLDER_IMAGE = "/assets/img/product-placeholder.svg";
 const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
+const WHATSAPP_CONTACT = '5561992074182';
+const WHATSAPP_DEFAULT_MESSAGE = 'Olá! Quero ver mais opções.';
 let cashbackInfo = readCashbackFromStorage();
 let PRODUCTS = [];
 const CAPAS_SLUG = categorySlug('Capas');
@@ -203,6 +206,14 @@ function slugify(s){
 function categorySlug(value){
   return slugify(value || '');
 }
+function getSelectedCategoryLabel(){
+  if(!selectCategory) return '';
+  const index = selectCategory.selectedIndex;
+  if(index == null || index < 0) return '';
+  const option = selectCategory.options[index];
+  if(!option || option.value === "__all") return '';
+  return option.textContent.trim();
+}
 function isCapasCategory(value){
   return categorySlug(value) === CAPAS_SLUG;
 }
@@ -216,6 +227,22 @@ function findCategoryMatch(param){
   if(!target) return "";
   const option = [...selectCategory.options].find(o => o.value !== "__all" && categorySlug(o.value) === target);
   return option ? option.value : "";
+}
+function buildWhatsAppMessage(){
+  const label = getSelectedCategoryLabel();
+  if(label){
+    return `Olá! Quero ver mais opções de ${label}.`;
+  }
+  return WHATSAPP_DEFAULT_MESSAGE;
+}
+function updateWhatsAppLink(){
+  if(!whatsappBtn) return;
+  const label = getSelectedCategoryLabel();
+  const message = buildWhatsAppMessage();
+  const url = `https://wa.me/${WHATSAPP_CONTACT}?text=${encodeURIComponent(message)}`;
+  whatsappBtn.href = url;
+  const ariaLabel = label ? `Ver mais opções de ${label} no WhatsApp` : 'Ver mais opções no WhatsApp';
+  whatsappBtn.setAttribute('aria-label', ariaLabel);
 }
 function caseDeviceSlug(value){
   return slugify(value || '');
@@ -436,6 +463,7 @@ function render(){
   const items = getFiltered();
   countEl.textContent = `${items.length} produto${items.length===1?"":"s"} encontrados.`;
   grid.innerHTML = items.length ? items.map(cardHTML).join("") : `<div class="muted">Nada encontrado.</div>`;
+  updateWhatsAppLink();
 }
 
 function cardHTML(p){
