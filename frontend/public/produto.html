@@ -51,7 +51,9 @@
     <section id="product-content" class="product-layout" hidden>
       <div class="product-gallery">
         <div class="product-frame">
-          <img id="product-image" alt="" loading="lazy"/>
+          <button id="product-image-trigger" class="product-image-trigger" type="button" aria-label="Ampliar imagem do produto">
+            <img id="product-image" alt="" loading="lazy"/>
+          </button>
         </div>
         <div id="product-thumbs" class="product-thumbs" hidden></div>
       </div>
@@ -89,6 +91,14 @@
     <div id="product-status" class="product-status muted"></div>
   </div>
 </main>
+
+<div id="product-lightbox" class="product-lightbox" role="dialog" aria-modal="true" hidden>
+  <div class="product-lightbox-backdrop" data-lightbox-dismiss></div>
+  <div class="product-lightbox-content" role="document">
+    <button class="lightbox-close" type="button" data-lightbox-dismiss aria-label="Fechar imagem">&times;</button>
+    <img id="product-lightbox-image" alt="" loading="lazy"/>
+  </div>
+</div>
 
 <footer class="iw-footer">
   <div class="iw-container footer-inner">
@@ -131,10 +141,16 @@
   const metaSection = document.getElementById('product-meta');
   const caseDeviceEl = document.getElementById('product-case-device');
   const imgEl = document.getElementById('product-image');
+  const imageTrigger = document.getElementById('product-image-trigger');
   const thumbsEl = document.getElementById('product-thumbs');
   const ctaEl = document.getElementById('product-cta');
   const addCartBtn = document.getElementById('product-add-cart');
   const crumb = document.getElementById('crumb-product');
+  const lightbox = document.getElementById('product-lightbox');
+  const lightboxImg = document.getElementById('product-lightbox-image');
+  const lightboxDismissEls = Array.from(document.querySelectorAll('[data-lightbox-dismiss]'));
+  const body = document.body;
+  let lastFocus = null;
   let currentProduct = null;
   if(addCartBtn){
     addCartBtn.disabled = true;
@@ -188,6 +204,32 @@
   if(!id){
     id = new URLSearchParams(location.search).get('id') || '';
   }
+
+  if(imageTrigger){
+    imageTrigger.addEventListener('click',()=>{
+      if(!imgEl || !imgEl.src) return;
+      const alt = imgEl.alt || nameEl.textContent || 'Imagem do produto';
+      openLightbox(imgEl.src, alt);
+    });
+  }
+
+  if(lightboxDismissEls.length){
+    lightboxDismissEls.forEach(el=>{
+      el.addEventListener('click', closeLightbox);
+    });
+  }
+
+  if(lightbox){
+    lightbox.addEventListener('click', event=>{
+      if(event.target === lightbox) closeLightbox();
+    });
+  }
+
+  document.addEventListener('keydown', event=>{
+    if(event.key === 'Escape'){
+      closeLightbox();
+    }
+  });
 
   if(!id){
     statusEl.textContent = 'Produto n\u00e3o encontrado.';
@@ -304,6 +346,10 @@
     const primary = gallery[0] || placeholder;
     imgEl.src = primary;
     imgEl.alt = p.name;
+    if(imageTrigger){
+      imageTrigger.disabled = !primary;
+      imageTrigger.setAttribute('aria-label', `Ampliar imagem de ${p.name}`);
+    }
 
     if(gallery.length > 1){
       thumbsEl.innerHTML = gallery.map((url,index)=>{
@@ -325,6 +371,7 @@
         btn.addEventListener('click',()=>{
           const url = btn.dataset.url || primary;
           imgEl.src = url;
+          imgEl.alt = p.name;
           setActive(btn);
         });
       });
@@ -346,6 +393,36 @@
       "'": '&#39;'
     };
     return String(str).replace(/[&<>"']/g, m => map[m]);
+  }
+
+  function openLightbox(src, alt){
+    if(!lightbox || !lightboxImg || !src) return;
+    lastFocus = document.activeElement;
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || '';
+    lightbox.hidden = false;
+    if(body){
+      body.classList.add('has-lightbox');
+    }
+    const closeBtn = lightbox.querySelector('.lightbox-close');
+    if(closeBtn && typeof closeBtn.focus === 'function'){
+      closeBtn.focus();
+    }
+  }
+
+  function closeLightbox(){
+    if(!lightbox || lightbox.hidden) return;
+    lightbox.hidden = true;
+    if(body){
+      body.classList.remove('has-lightbox');
+    }
+    if(lightboxImg){
+      lightboxImg.src = '';
+    }
+    if(lastFocus && typeof lastFocus.focus === 'function'){
+      lastFocus.focus();
+    }
+    lastFocus = null;
   }
 </script>
 </body>
