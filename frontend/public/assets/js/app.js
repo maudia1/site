@@ -218,8 +218,34 @@ function getSelectedCategoryLabel(){
 function isCapasCategory(value){
   return categorySlug(value) === CAPAS_SLUG;
 }
+function normalizeCaseDeviceList(value){
+  const list=[];
+  const visit=(input)=>{
+    if(Array.isArray(input)){
+      input.forEach(visit);
+      return;
+    }
+    if(input===null || input===undefined) return;
+    const str=String(input).trim();
+    if(!str || list.includes(str)) return;
+    list.push(str);
+  };
+  visit(value);
+  return list;
+}
+function formatCaseDeviceLabel(value){
+  const list=normalizeCaseDeviceList(value);
+  if(!list.length) return "";
+  if(list.length===1) return list[0];
+  if(list.length===2) return `${list[0]} e ${list[1]}`;
+  const head=list.slice(0,-1).join(', ');
+  return `${head} e ${list[list.length-1]}`;
+}
 function includesNormalizedText(value, term){
   if(!term) return true;
+  if(Array.isArray(value)){
+    return value.some(item=>includesNormalizedText(item, term));
+  }
   return normalizeText(value).includes(term);
 }
 function findCategoryMatch(param){
@@ -253,6 +279,11 @@ function updateWhatsAppLink(){
   }
 }
 function caseDeviceSlug(value){
+  if(Array.isArray(value)){
+    const list=normalizeCaseDeviceList(value);
+    if(!list.length) return '';
+    return slugify(list[0]);
+  }
   return slugify(value || '');
 }
 function findCaseDeviceMatch(param){
@@ -318,14 +349,13 @@ function collectCaseDeviceOptions(){
   const list = [];
   PRODUCTS.forEach(p=>{
     if(!p || !isCapasCategory(p.category)) return;
-    const caseDevice = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : "";
-    if(!caseDevice) return;
-    const label = String(caseDevice).trim();
-    if(!label) return;
-    const key = caseDeviceSlug(label);
-    if(!key || seen.has(key)) return;
-    seen.add(key);
-    list.push(label);
+    const caseDevices = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? normalizeCaseDeviceList(p.specs.caseDevice) : [];
+    caseDevices.forEach(label=>{
+      const key = caseDeviceSlug(label);
+      if(!key || seen.has(key)) return;
+      seen.add(key);
+      list.push(label);
+    });
   });
   return list.sort((a,b)=>a.localeCompare(b, 'pt-BR'));
 }
@@ -449,14 +479,14 @@ function getFiltered(){
   let list = PRODUCTS.filter(p=>{
     const productCatSlug = categorySlug(p.category);
     const inCat = !selectedCatSlug || (productCatSlug === selectedCatSlug);
-    const caseDevice = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : "";
-    const matchesCase = !shouldFilterCase || (caseDeviceSlug(caseDevice) === selectedCaseSlug);
+    const caseDevices = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? normalizeCaseDeviceList(p.specs.caseDevice) : [];
+    const matchesCase = !shouldFilterCase || caseDevices.some(value => caseDeviceSlug(value) === selectedCaseSlug);
     const inTxt = !normalizedTerm
       || includesNormalizedText(p.name, normalizedTerm)
       || includesNormalizedText(p.subtitle, normalizedTerm)
       || includesNormalizedText(p.tags, normalizedTerm)
       || includesNormalizedText(p.category, normalizedTerm)
-      || includesNormalizedText(p?.specs?.caseDevice || "", normalizedTerm);
+      || includesNormalizedText(caseDevices, normalizedTerm);
     return inCat && inTxt && matchesCase;
   });
   const s = selectSort.value;
@@ -482,8 +512,9 @@ function cardHTML(p){
   const cover = escapeHtml(coverRaw);
   const cb = computeCashback(priceNow);
   const installment = computeInstallments(priceNow);
-  const caseDevice = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : "";
-  const showCompatibility = caseDevice && String(p.category || "").toLowerCase() === "capas";
+  const caseDevices = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? normalizeCaseDeviceList(p.specs.caseDevice) : [];
+  const caseDeviceLabel = formatCaseDeviceLabel(caseDevices);
+  const showCompatibility = caseDeviceLabel && String(p.category || "").toLowerCase() === "capas";
   const payload = encodeCartPayload({
     id:p.id,
     name:p.name,
@@ -500,7 +531,7 @@ function cardHTML(p){
     <div class="product-body">
       <h3 class="product-title">${escapeHtml(p.name)}</h3>
       ${p.subtitle ? `<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>` : ""}
-      ${showCompatibility ? `<p class="product-compatibility">Compatível com ${escapeHtml(caseDevice)}</p>` : ""}
+      ${showCompatibility ? `<p class="product-compatibility">Compatível com ${escapeHtml(caseDeviceLabel)}</p>` : ""}
       <div class="product-pricing">
         <div class="product-price-line">
           <span class="product-price-label">Preço:</span>
