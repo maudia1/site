@@ -198,6 +198,29 @@
     });
     return unique;
   }
+  function normalizeCaseDeviceList(value){
+    const list=[];
+    const visit=(input)=>{
+      if(Array.isArray(input)){
+        input.forEach(visit);
+        return;
+      }
+      if(input===null || input===undefined) return;
+      const str=String(input).trim();
+      if(!str || list.includes(str)) return;
+      list.push(str);
+    };
+    visit(value);
+    return list;
+  }
+  function formatCaseDeviceLabel(value){
+    const list=normalizeCaseDeviceList(value);
+    if(!list.length) return "";
+    if(list.length===1) return list[0];
+    if(list.length===2) return `${list[0]} e ${list[1]}`;
+    const head=list.slice(0,-1).join(', ');
+    return `${head} e ${list[list.length-1]}`;
+  }
 
   const pathParts = location.pathname.split('/').filter(Boolean);
   let id = pathParts[0]==='produto' && pathParts[1] ? decodeURIComponent(pathParts.slice(1).join('/')) : '';
@@ -317,11 +340,11 @@
     }
 
     const specs = (p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs)) ? p.specs : {};
-    const caseDevice = specs.caseDevice || '';
-    const showCaseDevice = caseDevice && String(p.category || '').toLowerCase() === 'capas';
+    const caseDeviceLabel = formatCaseDeviceLabel(specs.caseDevice);
+    const showCaseDevice = caseDeviceLabel && String(p.category || '').toLowerCase() === 'capas';
 
     if(showCaseDevice){
-      caseDeviceEl.textContent = `Compatível com ${caseDevice}`;
+      caseDeviceEl.textContent = `Compatível com ${caseDeviceLabel}`;
       caseDeviceEl.hidden = false;
     }else{
       caseDeviceEl.textContent = '';
@@ -329,7 +352,7 @@
     }
 
     const meta = [];
-    if(showCaseDevice) meta.push(['Compatibilidade', caseDevice]);
+    if(showCaseDevice) meta.push(['Compatibilidade', caseDeviceLabel]);
     if(p.category) meta.push(['Categoria', p.category]);
     if(normalizedTags.length){
       meta.push(['Tags', normalizedTags.join(', ')]);

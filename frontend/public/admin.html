@@ -180,10 +180,8 @@
 
           <div class="row row-single" data-case-device-row hidden>
             <div class="stack"><label for="caseDevice">Compatibilidade (Capas)</label>
-              <select id="caseDevice" disabled>
-                <option value="">Selecione o modelo</option>
-              </select>
-              <small>Escolha o modelo de iPhone compatível com a capa.</small>
+              <select id="caseDevice" disabled multiple size="6"></select>
+              <small>Selecione todos os modelos de iPhone compatíveis com a capa. Use Ctrl (Windows) ou Command (macOS) para marcar mais de um.</small>
             </div>
           </div>
 
@@ -415,26 +413,45 @@ function normalizeCaseDeviceValue(value){
   return match || str;
 }
 
-function renderCaseDeviceOptions(selected=""){
+function normalizeCaseDeviceList(value){
+  const list=[];
+  const pushUnique=(label)=>{
+    const normalized=normalizeCaseDeviceValue(label);
+    if(normalized && !list.includes(normalized)){
+      list.push(normalized);
+    }
+  };
+  const visit=(input)=>{
+    if(Array.isArray(input)){
+      input.forEach(visit);
+      return;
+    }
+    if(input===null || input===undefined) return;
+    if(typeof input==="object" && "value" in input){
+      pushUnique(input.value);
+      return;
+    }
+    pushUnique(input);
+  };
+  visit(value);
+  return list;
+}
+
+function renderCaseDeviceOptions(selected=[]) {
   const select=$("#caseDevice");
   if(!select) return;
-  const normalized=normalizeCaseDeviceValue(selected);
-  const opts=['<option value="">Selecione o modelo</option>'];
-  CASE_DEVICE_OPTIONS.forEach(opt=>{
-    opts.push(`<option value="${esc(opt)}">${esc(opt)}</option>`);
+  const normalizedList=normalizeCaseDeviceList(selected);
+  const options=[...CASE_DEVICE_OPTIONS];
+  normalizedList.forEach(label=>{
+    if(label && !options.includes(label)){
+      options.push(label);
+    }
   });
-  if(normalized && !CASE_DEVICE_OPTIONS.includes(normalized)){
-    opts.push(`<option value="${esc(normalized)}">${esc(normalized)} (modelo antigo)</option>`);
-  }
-  const prev=select.value;
+  const opts=options.map(opt=>`<option value="${esc(opt)}">${esc(opt)}</option>`);
   select.innerHTML=opts.join('');
-  if(normalized){
-    select.value=normalized;
-  }else if(CASE_DEVICE_OPTIONS.includes(prev)){
-    select.value=prev;
-  }else{
-    select.value="";
-  }
+  Array.from(select.options).forEach(opt=>{
+    opt.selected=normalizedList.includes(opt.value);
+  });
 }
 
 function updateCaseDeviceVisibility(categoryValue=""){
@@ -448,6 +465,9 @@ function updateCaseDeviceVisibility(categoryValue=""){
   if(select){
     select.disabled=!isCapas;
     select.required=Boolean(isCapas);
+    if(!isCapas){
+      Array.from(select.options).forEach(opt=>{ opt.selected=false; });
+    }
   }
 }
 
@@ -484,8 +504,8 @@ function renderCaseFilterOptions(products){
       const categoryLabel=normalizeCategoryValue(p?.category||"");
       if(categoryLabel.toLowerCase()!=="capas") return;
       const specs=typeof p?.specs==="object" && !Array.isArray(p?.specs) ? p.specs : {};
-      const normalized=normalizeCaseDeviceValue(specs?.caseDevice||"");
-      if(normalized) compatibilities.add(normalized);
+      const caseValues=normalizeCaseDeviceList(specs?.caseDevice);
+      caseValues.forEach(value=>compatibilities.add(value));
     });
   }
   if(prev && prev!=="__all"){ compatibilities.add(prev); }
@@ -832,8 +852,8 @@ async function list(){
     }
     if(shouldFilterCase){
       const specs=typeof p?.specs==="object" && !Array.isArray(p?.specs) ? p.specs : {};
-      const caseDevice=normalizeCaseDeviceValue(specs?.caseDevice||"");
-      if(caseDevice!==selectedCaseValue) return false;
+      const caseDevices=normalizeCaseDeviceList(specs?.caseDevice);
+      if(!caseDevices.includes(selectedCaseValue)) return false;
     }
     if(!q) return true;
     const tagsValue=Array.isArray(p.tags)?p.tags.join(", "):p.tags;
@@ -1002,7 +1022,7 @@ function clearForm(){
   $("#msg").textContent="";
   renderCategoryOptions();
   renderBrandOptions();
-  renderCaseDeviceOptions();
+  renderCaseDeviceOptions([]);
   updateCaseDeviceVisibility();
   toggleAdvanced(false);
   setMode(null);
@@ -1024,7 +1044,9 @@ async function save(){
   const oldPriceRaw=$("#oldPrice").value;
   const categorySelected=normalizeCategoryValue($("#category").value);
   const brandSelected=normalizeBrandValue($("#brand").value);
-  const caseDeviceSelected=normalizeCaseDeviceValue($("#caseDevice")?.value||"");
+  const caseDeviceSelect=$("#caseDevice");
+  const rawCaseSelection=caseDeviceSelect?Array.from(caseDeviceSelect.selectedOptions||[]).map(opt=>opt.value):[];
+  const caseDeviceSelected=normalizeCaseDeviceList(rawCaseSelection);
   const primaryImage=$("#image").value.trim();
   const secondaryImage=$("#image2").value.trim();
   const tertiaryImage=$("#image3").value.trim();
@@ -1047,8 +1069,8 @@ async function save(){
   if(!FIXED_CATEGORIES.includes(body.category)){ $("#msg").textContent="Escolha uma das categorias disponíveis (Fones, Capas, Carregadores, Power Bank, Áudio ou Acessórios)."; return; }
   const isCapas=body.category.toLowerCase()==="capas";
   if(isCapas){
-    if(!caseDeviceSelected){ $("#msg").textContent="Selecione o modelo de iPhone da capa."; return; }
-    body.specs.caseDevice=caseDeviceSelected;
+    if(!caseDeviceSelected.length){ $("#msg").textContent="Selecione o modelo de iPhone da capa."; return; }
+    body.specs.caseDevice=caseDeviceSelected.length===1?caseDeviceSelected[0]:caseDeviceSelected;
   }
   if(!body.brand){ $("#msg").textContent="Informe a marca."; return; }
   if(!FIXED_BRANDS.includes(body.brand)){ $("#msg").textContent="Escolha uma das marcas disponíveis."; return; }
@@ -1066,7 +1088,11 @@ async function save(){
   const r = await fetch(url,{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok){ $("#msg").textContent="Erro ao salvar"; return; }
   const j = await r.json();
-  setMode(j.id || editingId);
+  if(method==="POST"){
+    setMode(null);
+  }else{
+    setMode(j.id || editingId);
+  }
   $("#msg").textContent="Salvo com sucesso";
   await list();
 }
@@ -1081,8 +1107,8 @@ async function fill(id){
   $("#image2").value=gallery[1]||"";
   $("#image3").value=gallery[2]||"";
   $("#description").value=p.description||"";
-  const caseDevice=(p.specs && typeof p.specs==="object" && !Array.isArray(p.specs)) ? p.specs.caseDevice || "" : "";
-  renderCaseDeviceOptions(caseDevice);
+  const caseDevices=(p.specs && typeof p.specs==="object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : [];
+  renderCaseDeviceOptions(caseDevices);
   renderCategoryOptions(p.category||"");
   renderBrandOptions(p.brand||"");
   updateCaseDeviceVisibility(p.category||"");
@@ -1095,8 +1121,8 @@ async function dup(id){
   $("#name").value=(p.name||"")+" (cópia)";
   renderCategoryOptions(p.category||"");
   renderBrandOptions(p.brand||"");
-  const caseDevice=(p.specs && typeof p.specs==="object" && !Array.isArray(p.specs)) ? p.specs.caseDevice || "" : "";
-  renderCaseDeviceOptions(caseDevice);
+  const caseDevices=(p.specs && typeof p.specs==="object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : [];
+  renderCaseDeviceOptions(caseDevices);
   updateCaseDeviceVisibility(p.category||"");
   $("#price").value=p.price ?? ""; $("#oldPrice").value=p.oldPrice ?? "";
   const tags=Array.isArray(p.tags)?p.tags.join(", "):p.tags||"";
