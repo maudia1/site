@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 64" role="img" aria-labelledby="title desc">
+  <title id="title">Logotipo ilustrativo dos Correios</title>
+  <desc id="desc">Encomenda estilizada nas cores azul e amarela representando os Correios do Brasil.</desc>
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#facc15"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="10" width="120" height="44" rx="14" ry="14" fill="#0f172a" opacity=".2"/>
+  <g transform="translate(18 16)">
+    <path d="M0 8c0-4.4 3.6-8 8-8h32l16 16-16 16H8c-4.4 0-8-3.6-8-8V8z" fill="url(#g1)"/>
+    <path d="M24 0h32c4.4 0 8 3.6 8 8v8c0 4.4-3.6 8-8 8H40L24 0z" fill="url(#g2)"/>
+    <path d="M18 12h54" stroke="#f8fafc" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+    <circle cx="70" cy="32" r="6" fill="#e2e8f0"/>
+    <circle cx="70" cy="32" r="3" fill="#1e293b"/>
+    <circle cx="18" cy="32" r="6" fill="#e2e8f0"/>
+    <circle cx="18" cy="32" r="3" fill="#1e293b"/>
+  </g>
+</svg>
