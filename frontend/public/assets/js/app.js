@@ -553,6 +553,7 @@ function cardHTML(p){
     <a class="product-media" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}">
       <img src="${cover}" alt="${escapeHtml(p.name)}">
       <span class="badge" ${hasOld?"":"hidden"}>- ${hasOld ? Math.round((1 - p.price/p.oldPrice)*100) : 0}%</span>
+      <span class="badge badge-black" ${isBlackFriday?"":"hidden"}>Black Friday</span>
     </a>
     <div class="product-body">
       <h3 class="product-title">${escapeHtml(p.name)}</h3>

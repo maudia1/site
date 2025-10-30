@@ -464,6 +464,7 @@ body.iw-modal-open{overflow:hidden}
 .product-media{ display:block; aspect-ratio:1 / 1; background:radial-gradient(60% 60% at 50% 40%, rgba(255,255,255,.08), rgba(255,255,255,.02)); position:relative }
 .product-media img{ width:100%; height:100%; object-fit:contain; padding:18px }
 .product-media .badge{ position:absolute; top:10px; left:10px; padding:5px 10px; font-size:.75rem; border-radius:999px; background:rgba(255,255,255,.85); color:#050505; font-weight:600 }
+.product-media .badge-black{ left:auto; right:10px; background:#111827; color:#f9fafb; box-shadow:0 6px 16px rgba(15,23,42,.25) }
 
 /* Corpo */
 .product-body{ padding:14px; display:grid; gap:8px }
