@@ -14,10 +14,10 @@ const PUBLIC_URL = process.env.PUBLIC_URL;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || PUBLIC_URL || "*";
 const ADMIN_USER = process.env.ADMIN_USER || "kayo";
 const ADMIN_PASS = process.env.ADMIN_PASS || "@Mine9273";
-const SUPABASE_URL = process.env.SUPABASE_URL || "";
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY || "";
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://ozulqzzgmglucoaqhlen.supabase.co";
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dWxxenpnbWdsdWNvYXFobGVuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDEyOTc5OSwiZXhwIjoyMDc1NzA1Nzk5fQ.Pu9RLn2R5nOuBV6202xdnpWJ_8rE8coMmTiPHQewKK8";
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || "products_sheet";
-const SUPABASE_VISITORS_TABLE = process.env.SUPABASE_VISITORS_TABLE || "quem entrou no site";
+const SUPABASE_VISITORS_TABLE = process.env.SUPABASE_VISITORS_TABLE || "entrou";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "frontend", "public");

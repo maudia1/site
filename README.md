@@ -28,9 +28,10 @@ O servidor sobe em `http://localhost:3000`. Ajuste as variaveis de ambiente conf
 | `CORS_ORIGIN`         | Origem autorizada para requisicoes (usa `PUBLIC_URL` quando definido) | `*`             |
 | `ADMIN_USER`          | Usuario para acessar `/admin`                                         | `kayo`          |
 | `ADMIN_PASS`          | Senha para acessar `/admin`                                           | `@Mine9273`     |
-| `SUPABASE_URL`        | URL do projeto Supabase (opcional)                                    | vazio           |
-| `SUPABASE_SERVICE_ROLE` / `SUPABASE_ANON_KEY` | Chaves Supabase usadas para sincronizar os produtos         | vazio           |
+| `SUPABASE_URL`        | URL do projeto Supabase (opcional)                                    | `https://ozulqzzgmglucoaqhlen.supabase.co` |
+| `SUPABASE_SERVICE_ROLE` / `SUPABASE_ANON_KEY` | Chaves Supabase usadas para sincronizar os produtos         | service role configurada |
 | `SUPABASE_TABLE`      | Nome da tabela Supabase usada na sincronizacao                        | `products_sheet`|
+| `SUPABASE_VISITORS_TABLE` | Tabela Supabase usada para registrar visitantes (coluna `numero`) | `entrou`        |
 
 > Dica: crie um arquivo `.env` com esses campos (sem subir para o Git) e use `cross-var` ou similar se precisar carregar automaticamente.
 
@@ -48,8 +49,7 @@ O servidor sobe em `http://localhost:3000`. Ajuste as variaveis de ambiente conf
    - Em **Application URL**, escolha o dominio/subdominio que vai apontar para o app.
 
 3. **Variaveis de ambiente**
-   - Dentro do painel, cadastre as variaveis listadas na tabela acima (ao menos `ADMIN_USER`, `ADMIN_PASS`, `PUBLIC_URL`).  
-   - Nunca exponha as chaves reais do Supabase em repositórios publicos.
+   - Dentro do painel, cadastre as variaveis listadas na tabela acima (ao menos `ADMIN_USER`, `ADMIN_PASS`, `PUBLIC_URL`).
 
 4. **Instalar dependencias e iniciar**
    - Ainda na area do app Node.js, clique em **Install Dependencies** (o Hostinger executa `npm install`).  
