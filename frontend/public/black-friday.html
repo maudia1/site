@@ -1,0 +1,92 @@
+<!doctype html><html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>iWanted &mdash; Black Friday</title>
+  <meta name="description" content="Ofertas exclusivas da Black Friday iWanted com descontos agressivos em acessórios Apple."/>
+  <link rel="stylesheet" href="/assets/css/styles.css"/>
+</head>
+<body>
+<header class="iw-header">
+  <div class="iw-container">
+    <a class="brand" href="/" aria-label="iWanted - In&iacute;cio">
+      <img class="brand-logo" src="/assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>
+      <span class="brand-text" aria-hidden="true">iWanted</span>
+    </a>
+    <div class="nav-shell">
+      <nav id="primary-nav" class="nav" data-nav-menu aria-label="Navega&ccedil;&atilde;o principal">
+        <a href="/">In&iacute;cio</a>
+        <a href="/catalogo">Produtos</a>
+        <a href="/black-friday" aria-current="page">Black Friday</a>
+        <a href="/#contato">Contato</a>
+      </nav>
+      <div class="nav-utilities">
+        <div class="nav-actions">
+          <a class="icon-btn" href="/catalogo" aria-label="Buscar" title="Buscar">&#128269;</a>
+          <button class="icon-btn" type="button" data-cart-open aria-label="Carrinho" title="Carrinho">
+            &#128722;
+            <span class="cart-count" data-cart-count hidden>0</span>
+          </button>
+        </div>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-nav" aria-expanded="false" aria-label="Abrir menu de navega&ccedil;&atilde;o">
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+          <span class="nav-toggle-bar"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="nav-overlay" data-nav-overlay hidden></div>
+</header>
+
+<main class="black-page">
+  <section class="black-hero" aria-labelledby="black-hero-title">
+    <div class="iw-container">
+      <div class="black-hero-copy">
+        <span class="pill pill-contrast" aria-hidden="true">Black Friday</span>
+        <h1 id="black-hero-title" class="display">Ofertas Black Friday iWanted</h1>
+        <p class="lead muted">Selecionamos os produtos mais pedidos com descontos especiais para a temporada Black Friday. Estoque limitado e frete para todo o Brasil.</p>
+        <div class="black-hero-actions">
+          <a class="btn btn-cta" href="#ofertas">Ver ofertas</a>
+          <a class="btn btn-ghost" href="https://wa.me/5561992074182?text=Quero%20garantir%20minhas%20ofertas%20de%20Black%20Friday%20iWanted" target="_blank" rel="noopener noreferrer">Falar no WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ofertas" class="black-list" aria-labelledby="black-list-title">
+    <div class="iw-container">
+      <div class="black-list-head">
+        <h2 id="black-list-title" class="section-title">Sele&ccedil;&atilde;o especial</h2>
+        <p id="black-count" class="muted small"></p>
+      </div>
+      <div id="black-grid" class="product-grid" aria-live="polite"></div>
+      <p id="black-empty" class="muted" hidden>Nenhum produto marcado como Black Friday ainda. Cadastre as ofertas no painel administrativo para vê-las aqui.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="iw-footer">
+  <div class="iw-container footer-inner">
+    <div class="foot-left">
+      <div class="foot-brand">
+        <img class="brand-logo brand-logo--small" src="/assets/img/apple-logo.jpg" alt="Apple" loading="lazy"/>
+        <span class="brand-text brand-text--footer" aria-hidden="true">iWanted</span>
+      </div>
+      <p class="muted">&copy; <span id="year"></span> iWanted &mdash; Autorizada Apple</p>
+    </div>
+    <div class="foot-right">
+      <a href="/black-friday">Black Friday</a>
+      <a href="/catalogo">Cat&aacute;logo</a>
+      <a href="/#contato">Contato</a>
+    </div>
+  </div>
+</footer>
+
+<script src="/assets/js/nav.js" defer></script>
+<script src="/assets/js/visitor.js" defer></script>
+<script src="/assets/js/cart.js" defer></script>
+<script src="/assets/js/black.js" defer></script>
+<script>document.getElementById('year').textContent=new Date().getFullYear()</script>
+</body>
+</html>

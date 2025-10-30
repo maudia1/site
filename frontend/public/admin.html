@@ -23,6 +23,9 @@
   .stack{display:grid;gap:6px}
   .stack label{font-size:.9rem;color:rgba(255,255,255,.78)}
   .stack small{font-size:.8rem;color:rgba(226,232,240,.75)}
+  .stack.stack-checkbox label{display:inline-flex;align-items:center;gap:10px;font-weight:600;color:#f8fafc}
+  .stack.stack-checkbox input[type=checkbox]{width:auto;margin:0;accent-color:#facc15}
+  .stack.stack-checkbox small{margin-top:4px}
   input,select,textarea{width:100%;padding:11px;border-radius:10px;border:1px solid rgba(148,163,184,.32);background:rgba(15,23,42,.4);color:#fff}
   input[type=file]{padding:10px;background:rgba(15,23,42,.48);border:1px dashed rgba(148,163,184,.6)}
   textarea{min-height:120px}
@@ -69,6 +72,8 @@
   .product-tags{margin:0;font-size:.85rem;color:rgba(226,232,240,.65)}
   .product-status{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.78rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
   .product-status--offline{background:rgba(220,38,38,.16);color:#fecaca;border:1px solid rgba(248,113,113,.35)}
+  .product-status--black{background:rgba(180,83,9,.22);color:#fef08a;border:1px solid rgba(217,119,6,.35)}
+  .product-status+.product-status{margin-left:8px}
   .product-actions{display:flex;flex-wrap:wrap;gap:10px}
   .product-actions .btn{flex:1 1 140px;min-width:120px}
   .muted.small{font-size:.9rem}
@@ -127,6 +132,7 @@
     <div class="nav-shell">
       <nav id="primary-nav" class="nav" data-nav-menu aria-label="Navega&ccedil;&atilde;o principal">
         <a href="/catalogo">Cat&aacute;logo</a>
+        <a href="/black-friday">Black Friday</a>
       </nav>
       <div class="nav-utilities">
         <div class="nav-actions" hidden></div>
@@ -188,6 +194,13 @@
           <div class="row">
             <div class="stack"><label>Preço atual (R$)</label><input id="price" type="number" step="0.01" placeholder="299,90"/></div>
             <div class="stack"><label>Preço anterior (opcional)</label><input id="oldPrice" type="number" step="0.01" placeholder="349,90"/></div>
+          </div>
+
+          <div class="row row-single">
+            <div class="stack stack-checkbox">
+              <label for="blackFriday"><input type="checkbox" id="blackFriday"/> Incluir na vitrine Black Friday</label>
+              <small>Marque para que o produto apareça na página especial de ofertas da Black Friday.</small>
+            </div>
           </div>
 
           <div class="stack">
@@ -880,12 +893,14 @@ async function list(){
           const oldPrice=Number.isFinite(Number(p.oldPrice)) && Number(p.oldPrice)>0 ? fmt(p.oldPrice) : "";
           const offline=p.isActive===false;
           const statusBadge=offline?'<span class="product-status product-status--offline">Offline</span>':'';
+          const blackBadge=p.isBlackFriday?'<span class="product-status product-status--black">Black Friday</span>':'';
+          const badgeGroup=[statusBadge,blackBadge].filter(Boolean).join('');
           const toggleLabel=offline?"Colocar no catálogo":"Tirar do catálogo";
           return `
             <article class="product-item${offline?" product-item--offline":""}" data-product-id="${esc(p.id)}">
               <div class="product-details">
                 <h4>${esc(p.name)}</h4>
-                ${statusBadge}
+                ${badgeGroup}
                 <p class="product-meta">${esc(p.brand||"Sem marca")}</p>
                 <p class="product-price">${fmt(p.price)}${oldPrice?` <span class="old-price">${oldPrice}</span>`:""}</p>
                 ${tagText?`<p class="product-tags">Tags: ${esc(tagText)}</p>`:""}
@@ -1019,6 +1034,8 @@ function clearForm(){
   $("#image").value="";
   $("#image2").value="";
   $("#image3").value="";
+  const blackField=$("#blackFriday");
+  if(blackField){ blackField.checked=false; }
   $("#msg").textContent="";
   renderCategoryOptions();
   renderBrandOptions();
@@ -1061,7 +1078,8 @@ async function save(){
     image: gallery[0]||"",
     images: gallery,
     description: $("#description").value.trim(),
-    specs: {}
+    specs: {},
+    isBlackFriday: Boolean($("#blackFriday")?.checked)
   };
 
   if(!body.name){ $("#msg").textContent="Informe o nome do produto."; return; }
@@ -1107,6 +1125,8 @@ async function fill(id){
   $("#image2").value=gallery[1]||"";
   $("#image3").value=gallery[2]||"";
   $("#description").value=p.description||"";
+  const blackField=$("#blackFriday");
+  if(blackField){ blackField.checked=Boolean(p.isBlackFriday); }
   const caseDevices=(p.specs && typeof p.specs==="object" && !Array.isArray(p.specs)) ? p.specs.caseDevice : [];
   renderCaseDeviceOptions(caseDevices);
   renderCategoryOptions(p.category||"");
@@ -1132,6 +1152,8 @@ async function dup(id){
   $("#image2").value=gallery[1]||"";
   $("#image3").value=gallery[2]||"";
   $("#description").value=p.description||"";
+  const blackField=$("#blackFriday");
+  if(blackField){ blackField.checked=Boolean(p.isBlackFriday); }
   setMode(null);
   toggleAdvanced(Boolean(tags));
   window.scrollTo({top:0,behavior:"smooth"});
@@ -1176,8 +1198,11 @@ function renderServerSnapshot(){
       log.textContent="Cadastre produtos usando o formulário ao lado.";
     }else{
       log.textContent=list.map(p=>{
-        const status=p.isActive===false?" (offline)":"";
-        return `• ${p.name} — ${p.brand||'Sem marca'} — ${p.category||'Sem categoria'} — ${maybeFmt(p.price)}${status}`;
+        const statusParts=[];
+        if(p.isActive===false) statusParts.push("offline");
+        if(p.isBlackFriday) statusParts.push("Black Friday");
+        const statusText=statusParts.length?` (${statusParts.join(', ')})`:"";
+        return `• ${p.name} — ${p.brand||'Sem marca'} — ${p.category||'Sem categoria'} — ${maybeFmt(p.price)}${statusText}`;
       }).join("\n");
     }
   }
@@ -1321,7 +1346,8 @@ function normalizeLocalProduct(p){
   const price = toNumber(priceRaw);
   const oldPrice = oldPriceRaw!=null ? toNumber(oldPriceRaw) : null;
   const id = (p.id || slugify(name)+"-"+Math.random().toString(36).slice(2,7));
-  return { id, name, category, brand, price, oldPrice, image: cover, images: gallery, subtitle: p.subtitle||p.subtitulo||"", description: p.description||p.descricao||"", tags };
+  const isBlack = Boolean(p.isBlackFriday || p.blackFriday || p.isBlack);
+  return { id, name, category, brand, price, oldPrice, image: cover, images: gallery, subtitle: p.subtitle||p.subtitulo||"", description: p.description||p.descricao||"", tags, isBlackFriday: isBlack };
 }
 function toServerPayload(p){
   const gallery=normalizeGallery(p.image,p.images).slice(0,3);
@@ -1336,7 +1362,8 @@ function toServerPayload(p){
     image: gallery[0]||"",
     images: gallery,
     description: p.description||"",
-    subtitle: p.subtitle||""
+    subtitle: p.subtitle||"",
+    isBlackFriday: Boolean(p.isBlackFriday)
   };
 }
 

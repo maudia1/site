@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS products (
   description TEXT,
   specs TEXT,
   isActive INTEGER NOT NULL DEFAULT 1,
+  isBlackFriday INTEGER NOT NULL DEFAULT 0,
   createdAt TEXT DEFAULT CURRENT_TIMESTAMP
 );
 `);
@@ -59,6 +60,15 @@ try {
 try {
   db.prepare("ALTER TABLE products ADD COLUMN isActive INTEGER DEFAULT 1").run();
   db.prepare("UPDATE products SET isActive = 1 WHERE isActive IS NULL").run();
+} catch (err) {
+  if (!(err && /duplicate column name/i.test(err.message || ""))) {
+    throw err;
+  }
+}
+
+try {
+  db.prepare("ALTER TABLE products ADD COLUMN isBlackFriday INTEGER DEFAULT 0").run();
+  db.prepare("UPDATE products SET isBlackFriday = 0 WHERE isBlackFriday IS NULL").run();
 } catch (err) {
   if (!(err && /duplicate column name/i.test(err.message || ""))) {
     throw err;
@@ -185,7 +195,7 @@ const safeJsonObject = (value) => {
   }
 };
 
-const normalizeIsActiveInput = (value) => {
+const normalizeFlagInput = (value) => {
   if (value === null || value === undefined) return null;
   if (typeof value === "boolean") return value ? 1 : 0;
   if (typeof value === "number") return value ? 1 : 0;
@@ -321,6 +331,8 @@ app.get("/api/products", (req, res) => {
   const admin = isAdminRequest(req);
   const includeInactiveParam = String(req.query.includeInactive ?? req.query.includeOffline ?? "").trim().toLowerCase();
   const includeInactive = admin && (includeInactiveParam === "1" || includeInactiveParam === "true");
+  const rawBlackParam = req.query.black ?? req.query.blackFriday ?? req.query.isBlack ?? req.query.isBlackFriday;
+  const blackFilterFlag = normalizeFlagInput(rawBlackParam);
   const sql = includeInactive
     ? "SELECT * FROM products ORDER BY createdAt DESC"
     : "SELECT * FROM products WHERE COALESCE(isActive, 1) = 1 ORDER BY createdAt DESC";
@@ -338,6 +350,9 @@ app.get("/api/products", (req, res) => {
     );
   }
   if (cat) list = list.filter(p => slugify(p.category) === cat);
+  if (blackFilterFlag !== null) {
+    list = list.filter(p => (p.isBlackFriday ? 1 : 0) === (blackFilterFlag ? 1 : 0));
+  }
 
   res.json(list);
 });
@@ -348,7 +363,8 @@ const normalizeProductRow = (row) => ({
   oldPrice: row.oldPrice ? fromCents(row.oldPrice) : null,
   images: safeJsonArray(row.images),
   specs: safeJsonObject(row.specs),
-  isActive: isRowActive(row)
+  isActive: isRowActive(row),
+  isBlackFriday: Number(row.isBlackFriday) === 1
 });
 
 app.get("/api/featured", (_req, res) => {
@@ -677,18 +693,22 @@ app.post("/api/products", requireAdmin, (req, res) => {
   } = req.body;
 
   const brandValue = typeof brand === "string" ? brand.trim() : "";
-  const isActiveFlag = normalizeIsActiveInput(req.body?.isActive);
+  const isActiveFlag = normalizeFlagInput(req.body?.isActive);
   const isActive = isActiveFlag == null ? 1 : isActiveFlag;
+  const isBlackFridayFlag = normalizeFlagInput(
+    req.body?.isBlackFriday ?? req.body?.blackFriday ?? req.body?.isBlack
+  );
+  const isBlackFriday = isBlackFridayFlag == null ? 0 : isBlackFridayFlag;
 
   if (!name || !category || !brandValue || price == null) return res.status(400).json({ error: "missing_fields" });
 
   db.prepare(`
-    INSERT INTO products (id, name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs, isActive)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs, isActive, isBlackFriday)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, name, subtitle || null, toCents(price), oldPrice ? toCents(oldPrice) : null,
     category, brandValue || null, (Array.isArray(tags) ? tags.join(",") : (tags || null)),
-    image || null, JSON.stringify(images || []), description || null, JSON.stringify(specs || {}), isActive
+    image || null, JSON.stringify(images || []), description || null, JSON.stringify(specs || {}), isActive, isBlackFriday
   );
   // Envia para Supabase de forma assíncrona (não bloqueia a resposta)
   supabaseUpsertProduct({
@@ -712,7 +732,14 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
   const { name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs } = req.body;
   const brandValue = typeof brand === "string" ? brand.trim() : null;
   const hasIsActive = Object.prototype.hasOwnProperty.call(req.body, "isActive");
-  const isActiveFlag = hasIsActive ? normalizeIsActiveInput(req.body.isActive) : null;
+  const isActiveFlag = hasIsActive ? normalizeFlagInput(req.body.isActive) : null;
+  const rawBlackInput = Object.prototype.hasOwnProperty.call(req.body, "isBlackFriday")
+    ? req.body.isBlackFriday
+    : (Object.prototype.hasOwnProperty.call(req.body, "blackFriday")
+      ? req.body.blackFriday
+      : (Object.prototype.hasOwnProperty.call(req.body, "isBlack") ? req.body.isBlack : undefined));
+  const hasBlackFriday = rawBlackInput !== undefined;
+  const blackFridayFlag = hasBlackFriday ? normalizeFlagInput(rawBlackInput) : null;
 
   // Atualização dinâmica: preserva oldPrice quando ausente; permite limpar quando null
   const sets = [
@@ -751,6 +778,10 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
     sets.push("isActive = COALESCE(?, isActive)");
     params.push(isActiveFlag == null ? null : isActiveFlag);
   }
+  if (hasBlackFriday) {
+    sets.push("isBlackFriday = COALESCE(?, isBlackFriday)");
+    params.push(blackFridayFlag == null ? null : blackFridayFlag);
+  }
   const sql = `UPDATE products SET ${sets.join(",\n      ")} WHERE id = ?`;
   db.prepare(sql).run(...params, id);
   try {
@@ -785,6 +816,7 @@ app.post("/api/upload", requireAdmin, upload.single("file"), (req, res) => {
 const sendStaticPage = (file) => (_req, res) => res.sendFile(path.join(publicDir, file));
 
 app.get(["/catalogo", "/catalogo/"], sendStaticPage("catalog.html"));
+app.get(["/black-friday", "/black-friday/"], sendStaticPage("black-friday.html"));
 app.get(["/admin", "/admin/"], requireAdmin, sendStaticPage("admin.html"));
 app.get(["/produto", "/produto/"], sendStaticPage("produto.html"));
 app.get("/produto/:id", sendStaticPage("produto.html"));
