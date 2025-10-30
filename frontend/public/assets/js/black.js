@@ -96,6 +96,7 @@ function normalizeProducts(arr){
       subtitle:item.subtitle,
       price:Number(item.price),
       oldPrice:item.oldPrice!=null?Number(item.oldPrice):null,
+      priceTwo: readComboPrice(item),
       image:item.image || (Array.isArray(item.images) && item.images[0]) || '',
       description:item.description || ''
     }))
@@ -108,6 +109,9 @@ function renderCard(p){
   const pct = hasOld ? Math.round((1 - priceNow / Number(p.oldPrice)) * 100) : 0;
   const installment = computeInstallments(priceNow);
   const cashback = computeCashback(priceNow);
+  const comboPrice = readComboPrice(p);
+  const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
+  const hasCombo = Number.isFinite(comboPrice) && comboPrice>0;
   const payload = encodeCartPayload({
     id:p.id,
     name:p.name,
@@ -134,6 +138,12 @@ function renderCard(p){
           <span class="product-price-label">Preço:</span>
           <span class="price-now">${formatBRL(priceNow)}</span>
         </div>
+        ${hasCombo ? `
+        <div class="product-price-line product-price-line--combo">
+          <span class="product-price-label">Leve 2:</span>
+          <span class="price-combo">${formatBRL(comboPrice)}</span>
+          ${comboSavings>0 ? `<span class="price-combo-saving">Economize ${formatBRL(comboSavings)}</span>` : ''}
+        </div>`:''}
         ${installment ? `
         <div class="product-price-line product-price-line--installment">
           <span class="product-price-label">Parcelado:</span>
@@ -180,6 +190,29 @@ function decodeCartPayload(value){
   }catch{
     return null;
   }
+}
+
+const COMBO_KEYS = ['priceTwo','price_for_two','priceForTwo','comboPrice','priceCombo','bundlePrice','priceBundle','leve2','leveDois','leve2Price'];
+function parseComboValue(raw){
+  if(typeof raw === 'number') return raw;
+  if(typeof raw === 'string'){
+    const normalized = raw.replace(/[^0-9,.-]/g,'').replace(/\.(?=\d{3}(?:\D|$))/g,'').replace(',', '.');
+    return Number(normalized);
+  }
+  return Number(raw);
+}
+function readComboPrice(source){
+  if(!source || typeof source !== 'object') return null;
+  for(const key of COMBO_KEYS){
+    if(Object.prototype.hasOwnProperty.call(source, key)){
+      const raw = source[key];
+      if(raw === null || raw === undefined || raw === '') return null;
+      const num = parseComboValue(raw);
+      if(!Number.isFinite(num) || num <= 0) return null;
+      return num;
+    }
+  }
+  return null;
 }
 
 function computeInstallments(amount){
