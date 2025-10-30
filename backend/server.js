@@ -17,7 +17,7 @@ const ADMIN_PASS = process.env.ADMIN_PASS || "@Mine9273";
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || "products_sheet";
-const SUPABASE_VISITORS_TABLE = "quem entrou no site";
+const SUPABASE_VISITORS_TABLE = process.env.SUPABASE_VISITORS_TABLE || "quem entrou no site";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "frontend", "public");
@@ -616,6 +616,22 @@ app.get("/api/cashback", async (req, res) => {
   }catch(e){
     console.error("[cashback] server_error", e?.message || e);
     return res.status(500).json({ error: "server_error" });
+  }
+});
+
+app.post("/api/visitors", async (req, res) => {
+  try {
+    const raw = req.body?.phone ?? req.body?.numero ?? req.body?.value ?? "";
+    const digits = String(raw).replace(/\D/g, "");
+    if (!digits) {
+      return res.status(400).json({ error: "missing_phone" });
+    }
+
+    await supabaseEnsureVisitorRecord(digits);
+    return res.status(204).end();
+  } catch (err) {
+    console.warn("[visitors] registro via API falhou", err?.message || err);
+    return res.status(500).json({ error: "store_failed" });
   }
 });
 

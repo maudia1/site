@@ -95,6 +95,13 @@
 
       try {
         setLoading(true);
+
+        fetch('/api/visitors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: digits })
+        }).catch((err) => console.warn('[cashback] falha ao registrar visitante', err));
+
         const res = await fetch(`/api/cashback?phone=${encodeURIComponent(digits)}`);
         const data = await res.json().catch(() => ({}));
         localStorage.setItem(RESULT_KEY, JSON.stringify({ phone: digits, data }));
