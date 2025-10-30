@@ -340,6 +340,7 @@ if(catSections.length && catChips.length){
       <a class="product-media" href="/produto/${encodeURIComponent(p.id)}">
         <img src="${p.image}" alt="${escapeHtml(p.name)}">
         <span class="badge" ${hasOld?'':'hidden'}>- ${pct}%</span>
+        <span class="badge badge-black" ${isBlackFriday?'':'hidden'}>Black Friday</span>
       </a>
       <div class="product-body">
         <h3 class="product-title">${escapeHtml(p.name)}</h3>
