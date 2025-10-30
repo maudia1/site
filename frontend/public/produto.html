@@ -393,16 +393,10 @@
       caseDeviceEl.hidden = true;
     }
 
-    const meta = [];
-    if(showCaseDevice) meta.push(['Compatibilidade', caseDeviceLabel]);
-    if(p.category) meta.push(['Categoria', p.category]);
-    if(normalizedTags.length){
-      meta.push(['Tags', normalizedTags.join(', ')]);
+    if(metaEl){
+      metaEl.innerHTML = '';
     }
-    if(meta.length){
-      metaEl.innerHTML = meta.map(([k,v])=>`<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join('');
-      metaSection.hidden = false;
-    }else{
+    if(metaSection){
       metaSection.hidden = true;
     }
 
