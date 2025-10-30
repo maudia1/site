@@ -56,6 +56,26 @@ function computeInstallments(amount){
   return { count, value };
 }
 
+const COMBO_KEYS = ['priceTwo','price_for_two','priceForTwo','comboPrice','priceCombo','bundlePrice','priceBundle','leve2','leveDois','leve2Price'];
+function readComboPrice(source){
+  if(!source || typeof source !== 'object') return null;
+  for(const key of COMBO_KEYS){
+    if(Object.prototype.hasOwnProperty.call(source, key)){
+      const raw = source[key];
+      if(raw === null || raw === undefined || raw === '') return null;
+      let num;
+      if(typeof raw === 'number'){
+        num = raw;
+      }else{
+        num = toNumber(raw);
+      }
+      if(!Number.isFinite(num) || num <= 0) return null;
+      return num;
+    }
+  }
+  return null;
+}
+
 init().catch(err=>{
   console.error(err);
   countEl.textContent = "Erro ao carregar produtos.";
@@ -149,12 +169,14 @@ function normalizeLocalProduct(p){
 
   const price = toNumber(priceRaw);
   const oldPrice = oldPriceRaw!=null ? toNumber(oldPriceRaw) : null;
+  const comboPrice = readComboPrice(p);
 
   // gera um id estável se vier sem
   const id = (p.id || slugify(name)+"-"+Math.random().toString(36).slice(2,7));
 
   return {
     id, name, category, price, oldPrice,
+    priceTwo: comboPrice,
     image: cover,
     images: normalizedImages,
     subtitle: p.subtitle || p.subtitulo || "",
@@ -507,6 +529,9 @@ function render(){
 function cardHTML(p){
   const hasOld = p.oldPrice && Number(p.oldPrice) > Number(p.price);
   const priceNow = Number(p.price) || 0;
+  const comboPrice = readComboPrice(p);
+  const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
+  const hasCombo = Number.isFinite(comboPrice) && comboPrice > 0;
   const gallery = normalizeGallery(p.image, Array.isArray(p.images)?p.images:[]).slice(0,3);
   const coverRaw = gallery[0] || p.image || PLACEHOLDER_IMAGE;
   const cover = escapeHtml(coverRaw);
@@ -537,6 +562,12 @@ function cardHTML(p){
           <span class="product-price-label">Preço:</span>
           <span class="price-now">${fmt(priceNow)}</span>
         </div>
+        ${hasCombo ? `
+        <div class="product-price-line product-price-line--combo">
+          <span class="product-price-label">Leve 2:</span>
+          <span class="price-combo">${fmt(comboPrice)}</span>
+          ${comboSavings>0 ? `<span class="price-combo-saving">Economize ${fmt(comboSavings)}</span>` : ''}
+        </div>` : ''}
         ${installment ? `
         <div class="product-price-line product-price-line--installment">
           <span class="product-price-label">Parcelado:</span>

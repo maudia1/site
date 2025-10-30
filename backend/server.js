@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS products (
   name TEXT NOT NULL,
   subtitle TEXT,              -- fica opcional (pode ignorar)
   price INTEGER NOT NULL,     -- em centavos
+  priceTwo INTEGER,
   oldPrice INTEGER,
   category TEXT NOT NULL,
   brand TEXT,
@@ -51,6 +52,14 @@ CREATE TABLE IF NOT EXISTS products (
 
 try {
   db.prepare("ALTER TABLE products ADD COLUMN brand TEXT").run();
+} catch (err) {
+  if (!(err && /duplicate column name/i.test(err.message || ""))) {
+    throw err;
+  }
+}
+
+try {
+  db.prepare("ALTER TABLE products ADD COLUMN priceTwo INTEGER").run();
 } catch (err) {
   if (!(err && /duplicate column name/i.test(err.message || ""))) {
     throw err;
@@ -195,6 +204,39 @@ const safeJsonObject = (value) => {
   }
 };
 
+const PRICE_TWO_KEYS = [
+  "priceTwo",
+  "price_for_two",
+  "priceForTwo",
+  "comboPrice",
+  "priceCombo",
+  "bundlePrice",
+  "priceBundle",
+  "doublePrice",
+  "priceDouble",
+  "leve2",
+  "leveDois",
+  "leve2Price"
+];
+
+const readPriceTwoInput = (body) => {
+  if (!body || typeof body !== "object") return { provided: false, value: null };
+  for (const key of PRICE_TWO_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(body, key)) {
+      const raw = body[key];
+      if (raw === null || raw === undefined || raw === "") {
+        return { provided: true, value: null };
+      }
+      const num = Number(raw);
+      if (!Number.isFinite(num) || num <= 0) {
+        return { provided: true, value: null };
+      }
+      return { provided: true, value: num };
+    }
+  }
+  return { provided: false, value: null };
+};
+
 const normalizeFlagInput = (value) => {
   if (value === null || value === undefined) return null;
   if (typeof value === "boolean") return value ? 1 : 0;
@@ -283,6 +325,7 @@ async function supabaseUpsertProduct(p) {
       category: p.category || null,
       price: typeof p.price === "number" ? Number(p.price) : null,
       oldPrice: p.oldPrice != null ? Number(p.oldPrice) : null,
+      priceTwo: p.priceTwo != null ? Number(p.priceTwo) : null,
       image: p.image || null,
       createdAt: p.createdAt || null
     };
@@ -360,6 +403,7 @@ app.get("/api/products", (req, res) => {
 const normalizeProductRow = (row) => ({
   ...row,
   price: fromCents(row.price),
+  priceTwo: row.priceTwo ? fromCents(row.priceTwo) : null,
   oldPrice: row.oldPrice ? fromCents(row.oldPrice) : null,
   images: safeJsonArray(row.images),
   specs: safeJsonObject(row.specs),
@@ -691,6 +735,7 @@ app.post("/api/products", requireAdmin, (req, res) => {
     name, /* subtitle ignorável */ subtitle,
     price, oldPrice, category, brand, tags, image, images = [], description, specs = {}
   } = req.body;
+  const { value: priceTwoValue } = readPriceTwoInput(req.body);
 
   const brandValue = typeof brand === "string" ? brand.trim() : "";
   const isActiveFlag = normalizeFlagInput(req.body?.isActive);
@@ -703,10 +748,11 @@ app.post("/api/products", requireAdmin, (req, res) => {
   if (!name || !category || !brandValue || price == null) return res.status(400).json({ error: "missing_fields" });
 
   db.prepare(`
-    INSERT INTO products (id, name, subtitle, price, oldPrice, category, brand, tags, image, images, description, specs, isActive, isBlackFriday)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, subtitle, price, oldPrice, priceTwo, category, brand, tags, image, images, description, specs, isActive, isBlackFriday)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, name, subtitle || null, toCents(price), oldPrice ? toCents(oldPrice) : null,
+    priceTwoValue != null ? toCents(priceTwoValue) : null,
     category, brandValue || null, (Array.isArray(tags) ? tags.join(",") : (tags || null)),
     image || null, JSON.stringify(images || []), description || null, JSON.stringify(specs || {}), isActive, isBlackFriday
   );
@@ -765,6 +811,12 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
     sets.splice(3, 0, "oldPrice = ?");
     params.push(oldPrice == null ? null : toCents(oldPrice));
   }
+  const { provided: hasPriceTwo, value: priceTwoValue } = readPriceTwoInput(req.body);
+  if (hasPriceTwo) {
+    const insertIndex = hasOldPrice ? 4 : 3;
+    sets.splice(insertIndex, 0, "priceTwo = ?");
+    params.push(priceTwoValue != null ? toCents(priceTwoValue) : null);
+  }
   params.push(
     category ?? null,
     brandValue ?? null,
@@ -792,6 +844,7 @@ app.put("/api/products/:id", requireAdmin, (req, res) => {
         name: row.name,
         price: fromCents(row.price),
         oldPrice: row.oldPrice ? fromCents(row.oldPrice) : null,
+        priceTwo: row.priceTwo ? fromCents(row.priceTwo) : null,
         category: row.category,
         image: row.image,
         createdAt: row.createdAt

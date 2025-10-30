@@ -27,6 +27,7 @@ function cacheEls(){
   els.category = document.getElementById("category");
   els.price = document.getElementById("price");
   els.oldPrice = document.getElementById("oldPrice");
+  els.priceTwo = document.getElementById("priceTwo");
   els.tags = document.getElementById("tags");
   els.imageUrl = document.getElementById("image-url");
   els.imageFile = document.getElementById("image-file");
@@ -120,6 +121,7 @@ function saveProduct(){
 
   const price = parseMoneyBR(els.price.value);
   const oldPrice = els.oldPrice.value ? parseMoneyBR(els.oldPrice.value) : null;
+  const priceTwo = els.priceTwo.value ? parseMoneyBR(els.priceTwo.value) : null;
 
   const problems = [];
   if (!els.category.value.trim()) { markError(els.category); problems.push("Categoria é obrigatória."); }
@@ -139,6 +141,7 @@ function saveProduct(){
     category: els.category.value.trim(),
     price,
     old_price: isFinite(oldPrice) ? oldPrice : undefined,
+    price_two: isFinite(priceTwo) ? priceTwo : undefined,
     tags: (els.tags.value || "").split(",").map(s => s.trim()).filter(Boolean),
     image: mainImage,
     buy_url: "#",
@@ -167,6 +170,7 @@ function editProduct(idx){
   els.category.value = p.category || "";
   els.price.value = formatBRInput(p.price);
   els.oldPrice.value = p.old_price != null ? formatBRInput(p.old_price) : "";
+  els.priceTwo.value = p.price_two != null ? formatBRInput(p.price_two) : "";
   els.tags.value = (p.tags || []).join(", ");
 
   state.imageDataURL = "";
