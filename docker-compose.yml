@@ -13,7 +13,7 @@ services:
       - ADMIN_USER=seu-usuario
       - ADMIN_PASS=sua-senha-segura
       - PUBLIC_URL=https://site.iwanted.shop
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_ROLE=${SUPABASE_SERVICE_ROLE}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_URL=https://ozulqzzgmglucoaqhlen.supabase.co
+      - SUPABASE_SERVICE_ROLE=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dWxxenpnbWdsdWNvYXFobGVuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDEyOTc5OSwiZXhwIjoyMDc1NzA1Nzk5fQ.Pu9RLn2R5nOuBV6202xdnpWJ_8rE8coMmTiPHQewKK8
       - SUPABASE_TABLE=products_sheet
+      - SUPABASE_VISITORS_TABLE=entrou
