@@ -108,7 +108,8 @@ function renderCard(p){
   const hasOld = Number.isFinite(Number(p.oldPrice)) && Number(p.oldPrice) > priceNow;
   const pct = hasOld ? Math.round((1 - priceNow / Number(p.oldPrice)) * 100) : 0;
   const installment = computeInstallments(priceNow);
-  const cashback = computeCashback(priceNow);
+  const isBlackFriday = Boolean(p.isBlackFriday ?? true);
+  const cashback = isBlackFriday ? null : computeCashback(priceNow);
   const comboPrice = readComboPrice(p);
   const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
   const hasCombo = Number.isFinite(comboPrice) && comboPrice>0;

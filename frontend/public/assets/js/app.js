@@ -535,7 +535,8 @@ function cardHTML(p){
   const gallery = normalizeGallery(p.image, Array.isArray(p.images)?p.images:[]).slice(0,3);
   const coverRaw = gallery[0] || p.image || PLACEHOLDER_IMAGE;
   const cover = escapeHtml(coverRaw);
-  const cb = computeCashback(priceNow);
+  const isBlackFriday = Boolean(p.isBlackFriday);
+  const cb = isBlackFriday ? null : computeCashback(priceNow);
   const installment = computeInstallments(priceNow);
   const caseDevices = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? normalizeCaseDeviceList(p.specs.caseDevice) : [];
   const caseDeviceLabel = formatCaseDeviceLabel(caseDevices);

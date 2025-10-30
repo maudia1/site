@@ -133,7 +133,8 @@ if(catSections.length && catChips.length){
     const pct = hasOld ? Math.round((1 - priceNow / Number(product.oldPrice)) * 100) : 0;
     const comboPrice = readComboPrice(product);
     const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
-    const cb = computeCashback(priceNow);
+    const isBlackFriday = Boolean(product.isBlackFriday);
+    const cb = isBlackFriday ? null : computeCashback(priceNow);
     const installment = computeInstallments(priceNow);
     const savingsFromOld = hasOld ? Number(product.oldPrice) - priceNow : 0;
     const savingsFromCb = cb ? cb.applied : 0;
@@ -321,7 +322,8 @@ if(catSections.length && catChips.length){
     const hasOld = Number.isFinite(Number(p.oldPrice)) && p.oldPrice>p.price;
     const pct = hasOld ? Math.round((1-p.price/p.oldPrice)*100) : 0;
     const priceNow = Number(p.price) || 0;
-    const cb = computeCashback(priceNow);
+    const isBlackFriday = Boolean(p.isBlackFriday);
+    const cb = isBlackFriday ? null : computeCashback(priceNow);
     const installment = computeInstallments(priceNow);
     const comboPrice = readComboPrice(p);
     const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
