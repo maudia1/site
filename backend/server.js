@@ -18,6 +18,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || "products_sheet";
 const SUPABASE_VISITORS_TABLE = process.env.SUPABASE_VISITORS_TABLE || "quem entrou no site";
+const SUPABASE_VISITORS_NAME_COLUMN = process.env.SUPABASE_VISITORS_NAME_COLUMN || "";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "frontend", "public");
@@ -293,7 +294,11 @@ async function supabaseEnsureVisitorRecord(phone, name) {
     }
 
     try {
-      const payload = [{ numero: digits, nome: name ? String(name) : null }];
+      const payloadEntry = { numero: digits };
+      if (name && SUPABASE_VISITORS_NAME_COLUMN) {
+        payloadEntry[SUPABASE_VISITORS_NAME_COLUMN] = String(name);
+      }
+      const payload = [payloadEntry];
       const insertUrl = `${base}/rest/v1/${tablePath}?on_conflict=numero`;
       const insertHeaders = {
         ...commonHeaders,
@@ -525,6 +530,7 @@ app.get("/api/cashback", async (req, res) => {
     const raw = String(req.query.phone || "");
     const phone = raw.replace(/\D/g, "");
     if(!phone) return res.status(400).json({ error: "missing_phone" });
+    supabaseEnsureVisitorRecord(phone).catch(()=>{});
     if(!SUPABASE_URL || !SUPABASE_KEY){
       console.warn("[cashback] SUPABASE_URL ou SUPABASE_KEY ausentes");
       return res.status(200).json({ found:false });
@@ -573,7 +579,9 @@ app.get("/api/cashback", async (req, res) => {
           if(Array.isArray(arr) && arr.length){
             const row = arr[0] || {};
             const { name, cashback } = mapRow(row);
-            supabaseEnsureVisitorRecord(phone, name).catch(()=>{});
+            if (SUPABASE_VISITORS_NAME_COLUMN) {
+              supabaseEnsureVisitorRecord(phone, name).catch(()=>{});
+            }
             return res.json({ found:true, name, cashback });
           }
         }catch(err){
@@ -603,7 +611,9 @@ app.get("/api/cashback", async (req, res) => {
             });
             if(match){
               const { name, cashback } = mapRow(match);
-              supabaseEnsureVisitorRecord(phone, name).catch(()=>{});
+              if (SUPABASE_VISITORS_NAME_COLUMN) {
+                supabaseEnsureVisitorRecord(phone, name).catch(()=>{});
+              }
               return res.json({ found:true, name, cashback });
             }
           }
