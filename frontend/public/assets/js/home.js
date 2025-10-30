@@ -27,6 +27,31 @@ function computeInstallments(amount){
   return { count, value };
 }
 
+const COMBO_KEYS = ['priceTwo','price_for_two','priceForTwo','comboPrice','priceCombo','bundlePrice','priceBundle','leve2','leveDois','leve2Price'];
+function parseComboValue(raw){
+  if(typeof raw === 'number') return raw;
+  if(typeof raw === 'string'){
+    const normalized = raw.replace(/[^0-9,.-]/g,'').replace(/\.(?=\d{3}(?:\D|$))/g,'').replace(',', '.');
+    const num = Number(normalized);
+    return num;
+  }
+  const num = Number(raw);
+  return num;
+}
+function readComboPrice(source){
+  if(!source || typeof source !== 'object') return null;
+  for(const key of COMBO_KEYS){
+    if(Object.prototype.hasOwnProperty.call(source, key)){
+      const raw = source[key];
+      if(raw === null || raw === undefined || raw === '') return null;
+      const num = parseComboValue(raw);
+      if(!Number.isFinite(num) || num <= 0) return null;
+      return num;
+    }
+  }
+  return null;
+}
+
 // Scroll reveal
 const observer = new IntersectionObserver((entries)=>{
   entries.forEach(e=>{
@@ -106,6 +131,8 @@ if(catSections.length && catChips.length){
     const priceNow = Number(product.price) || 0;
     const hasOld = Number.isFinite(Number(product.oldPrice)) && Number(product.oldPrice) > priceNow;
     const pct = hasOld ? Math.round((1 - priceNow / Number(product.oldPrice)) * 100) : 0;
+    const comboPrice = readComboPrice(product);
+    const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
     const cb = computeCashback(priceNow);
     const installment = computeInstallments(priceNow);
     const savingsFromOld = hasOld ? Number(product.oldPrice) - priceNow : 0;
@@ -131,6 +158,14 @@ if(catSections.length && catChips.length){
             ${pct ? `<span class="mega-discount">-${pct}%</span>` : ''}
             ${installment ? `<span class="mega-installment">${installment.count}x de ${formatBRL(installment.value)} sem juros</span>` : ''}
             ${cb ? `<span class="mega-price-note">Com cashback aplicado: ${formatBRL(cb.finalPrice)}</span>` : ''}
+            ${Number.isFinite(comboPrice) && comboPrice>0 ? `
+              <div class="mega-combo">
+                <span class="mega-combo-pill">Leve 2</span>
+                <div class="mega-combo-copy">
+                  <strong>${formatBRL(comboPrice)}</strong>
+                  ${comboSavings>0 ? `<span class="mega-combo-saving">Economize ${formatBRL(comboSavings)}</span>` : ''}
+                </div>
+              </div>` : ''}
           </div>
           <div class="mega-actions">
             <a class="btn btn-cta" href="/produto/${encodeURIComponent(product.id)}">Aproveitar agora</a>
@@ -288,6 +323,9 @@ if(catSections.length && catChips.length){
     const priceNow = Number(p.price) || 0;
     const cb = computeCashback(priceNow);
     const installment = computeInstallments(priceNow);
+    const comboPrice = readComboPrice(p);
+    const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
+    const hasCombo = Number.isFinite(comboPrice) && comboPrice>0;
     const payload = encodeCartPayload({
       id:p.id,
       name:p.name,
@@ -305,11 +343,17 @@ if(catSections.length && catChips.length){
         <h3 class="product-title">${escapeHtml(p.name)}</h3>
         ${p.subtitle?`<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>`:''}
         <div class="product-pricing">
-          <div class="product-price-line">
-            <span class="product-price-label">Preço:</span>
-            <span class="price-now">${formatBRL(priceNow)}</span>
-          </div>
-          ${installment ? `
+        <div class="product-price-line">
+          <span class="product-price-label">Preço:</span>
+          <span class="price-now">${formatBRL(priceNow)}</span>
+        </div>
+        ${hasCombo ? `
+        <div class="product-price-line product-price-line--combo">
+          <span class="product-price-label">Leve 2:</span>
+          <span class="price-combo">${formatBRL(comboPrice)}</span>
+          ${comboSavings>0 ? `<span class="price-combo-saving">Economize ${formatBRL(comboSavings)}</span>` : ''}
+        </div>`:''}
+        ${installment ? `
           <div class="product-price-line product-price-line--installment">
             <span class="product-price-label">Parcelado:</span>
             <span class="price-installment">${installment.count}x de ${formatBRL(installment.value)}</span>
@@ -396,6 +440,7 @@ if(catSections.length && catChips.length){
       subtitle:item.subtitle,
       price:Number(item.price),
       oldPrice:item.oldPrice!=null?Number(item.oldPrice):null,
+      priceTwo: readComboPrice(item),
       image:item.image || (Array.isArray(item.images)&&item.images[0]) || ''
     })).filter(p=>p.id && p.name && Number.isFinite(Number(p.price)) && p.image);
   }

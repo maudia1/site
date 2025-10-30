@@ -67,6 +67,15 @@
           <span id="product-price" class="price-now">R$ 0,00</span>
           <span id="product-oldprice" class="price-old" hidden></span>
         </div>
+        <div id="product-bundle" class="product-bundle" hidden>
+          <div class="bundle-banner">
+            <span class="bundle-pill">Leve 2</span>
+            <div class="bundle-copy">
+              <strong id="product-bundle-price">R$ 0,00</strong>
+              <span id="product-bundle-saving"></span>
+            </div>
+          </div>
+        </div>
         <p id="product-installment" class="price-installment" hidden></p>
         <p id="product-description-short" class="product-summary muted" hidden></p>
         <div id="product-tags" class="product-tags" hidden></div>
@@ -136,6 +145,9 @@
   const priceEl = document.getElementById('product-price');
   const oldPriceEl = document.getElementById('product-oldprice');
   const installmentEl = document.getElementById('product-installment');
+  const bundleBox = document.getElementById('product-bundle');
+  const bundlePriceEl = document.getElementById('product-bundle-price');
+  const bundleSavingEl = document.getElementById('product-bundle-saving');
   const categoryEl = document.getElementById('product-category');
   const tagsEl = document.getElementById('product-tags');
   const metaEl = document.querySelector('#product-meta dl');
@@ -179,6 +191,21 @@
     else if(price >= 300) count = 4;
     const value = price / count;
     return { count, value };
+  }
+
+  const COMBO_KEYS = ['priceTwo','price_for_two','priceForTwo','comboPrice','priceCombo','bundlePrice','priceBundle','leve2','leveDois','leve2Price'];
+  function readComboPrice(source){
+    if(!source || typeof source !== 'object') return null;
+    for(const key of COMBO_KEYS){
+      if(Object.prototype.hasOwnProperty.call(source, key)){
+        const raw = source[key];
+        if(raw === null || raw === undefined || raw === '') return null;
+        const num = Number(raw);
+        if(!Number.isFinite(num) || num <= 0) return null;
+        return num;
+      }
+    }
+    return null;
   }
 
   function normalizeGallery(...sources){
@@ -301,6 +328,20 @@
       oldPriceEl.hidden = false;
     }else{
       oldPriceEl.hidden = true;
+    }
+
+    const comboPrice = readComboPrice(p);
+    if(bundleBox && bundlePriceEl && bundleSavingEl){
+      if(Number.isFinite(comboPrice) && comboPrice>0){
+        const base = Number(p.price) || 0;
+        const comboSavings = Math.max((base*2) - comboPrice, 0);
+        bundlePriceEl.textContent = fmt(comboPrice);
+        bundleSavingEl.textContent = comboSavings>0 ? `Economize ${fmt(comboSavings)}` : 'Dois por um preço especial';
+        bundleBox.hidden = false;
+      }else{
+        bundleBox.hidden = true;
+        bundleSavingEl.textContent = '';
+      }
     }
 
     const installment = computeInstallments(p.price);
