@@ -72,7 +72,9 @@ if(catSections.length && catChips.length){
   const featuredGrid = document.getElementById('featured-grid');
   const catalogGrid = document.getElementById('catalog-grid');
   const heroHighlight = document.getElementById('hero-highlight');
-  if(!featuredGrid && !catalogGrid && !heroHighlight) return;
+  const blackPreviewGrid = document.getElementById('black-preview-grid');
+  const blackPreviewEmpty = document.getElementById('black-preview-empty');
+  if(!featuredGrid && !catalogGrid && !heroHighlight && !blackPreviewGrid) return;
 
   const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
   const CASHBACK_EVENT = 'iw-cashback-update';
@@ -81,6 +83,7 @@ if(catSections.length && catChips.length){
   let heroProduct = null;
   let catalogList = [];
   let catalogEmptyHtml = '';
+  let blackFridayList = [];
 
   const renderHero = ()=>{
     if(!heroHighlight) return;
@@ -158,10 +161,24 @@ if(catSections.length && catChips.length){
     }
   };
 
+  const renderBlackPreview = ()=>{
+    if(!blackPreviewGrid) return;
+    if(blackFridayList.length){
+      blackPreviewGrid.hidden = false;
+      blackPreviewGrid.innerHTML = blackFridayList.slice(0,3).map(renderCard).join('');
+      if(blackPreviewEmpty) blackPreviewEmpty.hidden = true;
+    }else{
+      blackPreviewGrid.innerHTML = '';
+      blackPreviewGrid.hidden = true;
+      if(blackPreviewEmpty) blackPreviewEmpty.hidden = false;
+    }
+  };
+
   const rerender = ()=>{
     renderHero();
     renderFeatured();
     renderCatalog();
+    renderBlackPreview();
   };
 
   window.addEventListener(CASHBACK_EVENT, (event)=>{
@@ -221,14 +238,15 @@ if(catSections.length && catChips.length){
     }
   ];
 
-  const [heroFromApi, featuredFromApi, curated, catalog] = await Promise.all([
+  const [heroFromApi, featuredFromApi, curated, catalog, blackFromApi] = await Promise.all([
     loadHeroFromApi(),
     loadFeaturedFromApi(),
     loadHomeCurated(),
-    loadCatalogFromApi()
+    loadCatalogFromApi(),
+    loadBlackFridayFromApi()
   ]);
 
-  const hasAnyServerProduct = Boolean(heroFromApi || featuredFromApi.length || curated.length || catalog.length);
+  const hasAnyServerProduct = Boolean(heroFromApi || featuredFromApi.length || curated.length || catalog.length || blackFromApi.length);
 
   heroProduct = heroFromApi || (!hasAnyServerProduct ? fallbackHero : null);
   renderHero();
@@ -257,6 +275,11 @@ if(catSections.length && catChips.length){
       ? '<p class="muted">Nenhum produto selecionado para a home.</p>'
       : '<p class="muted">Cadastre produtos no painel para vê-los aqui.</p>';
     renderCatalog();
+  }
+
+  if(blackPreviewGrid){
+    blackFridayList = Array.isArray(blackFromApi) ? blackFromApi.slice(0,3) : [];
+    renderBlackPreview();
   }
 
   function renderCard(p){
@@ -312,6 +335,19 @@ if(catSections.length && catChips.length){
   async function loadFeaturedFromApi(){
     try{
       const res = await fetch('/api/featured-products');
+      if(res.ok){
+        return normalizeProducts(await res.json());
+      }
+    }catch{}
+    return [];
+  }
+
+  async function loadBlackFridayFromApi(){
+    try{
+      const url = new URL('/api/products', location.origin);
+      url.searchParams.set('black','1');
+      url.searchParams.set('_', Date.now());
+      const res = await fetch(url.toString());
       if(res.ok){
         return normalizeProducts(await res.json());
       }
