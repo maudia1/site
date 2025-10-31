@@ -118,7 +118,8 @@ function renderCard(p){
     name:p.name,
     price:priceNow,
     image:p.image || '',
-    url:`/produto/${encodeURIComponent(p.id)}`
+    url:`/produto/${encodeURIComponent(p.id)}`,
+    priceTwo: Number.isFinite(comboPrice) && comboPrice>0 ? comboPrice : null
   });
   return `
   <article class="product-card">

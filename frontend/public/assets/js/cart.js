@@ -7,6 +7,7 @@
   const CASHBACK_EVENT = 'iw-cashback-update';
   const PLACEHOLDER_IMAGE = '/assets/img/product-placeholder.svg';
   const CHECKOUT_WHATSAPP = '5561992074182';
+  const COMBO_PROP_KEYS = ['priceTwo','comboPrice','bundlePrice','priceCombo','priceBundle','price_for_two','priceForTwo','leve2','leveDois','leve2Price'];
 
   let cart = [];
   let cashbackInfo = null;
@@ -180,8 +181,19 @@
     const existing = cart.find(entry=>entry.id===item.id);
     if(existing){
       existing.quantity = clampQuantity(existing.quantity + item.quantity);
+      if(item.priceTwo != null){
+        existing.priceTwo = item.priceTwo;
+      }
     }else{
-      cart.push(item);
+      cart.push({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        url: item.url,
+        quantity: item.quantity,
+        priceTwo: item.priceTwo ?? null
+      });
     }
     persistCart();
     render();
@@ -237,10 +249,13 @@
 
   function checkoutCart(){
     if(!cart.length) return;
-    const total = cart.reduce((sum,item)=>sum + item.price*item.quantity, 0);
+    const total = cart.reduce((sum,item)=>sum + computeLineTotal(item), 0);
     const cashback = computeCashback(total);
     const installment = computeInstallments(total);
-    const lines = cart.map(item=>`- ${item.name} (x${item.quantity}) — ${formatBRL(item.price*item.quantity)}`);
+    const lines = cart.map(item=>{
+      const qty = clampQuantity(item.quantity||1) || 1;
+      return `- ${item.name} (x${qty}) — ${formatBRL(computeLineTotal(item))}`;
+    });
     const parts = [
       'Olá! Gostaria de finalizar a compra dos itens:',
       ...lines,
@@ -277,7 +292,7 @@
 
   function renderSummary(){
     if(!totalEl) return;
-    const total = cart.reduce((sum,item)=>sum + item.price*item.quantity, 0);
+    const total = cart.reduce((sum,item)=>sum + computeLineTotal(item), 0);
     totalEl.textContent = formatBRL(total);
     if(cart.length){
       const installment = computeInstallments(total);
@@ -306,12 +321,16 @@
   }
 
   function renderItem(item){
-    const lineTotal = item.price * item.quantity;
+    const qty = clampQuantity(item.quantity || 1) || 1;
+    const unitPrice = Number(item.price) || 0;
+    const lineTotal = computeLineTotal(item);
+    const savings = Math.max((unitPrice * qty) - lineTotal, 0);
+    const savingsLabel = savings > 0 ? ` · economize ${formatBRL(savings)}` : '';
+    const promoLabel = savings > 0 ? `<span class="cart-item-promo">Leve 2 aplicado${savingsLabel}</span>` : '';
     const safeId = escapeAttr(item.id);
     const name = escapeHtml(item.name);
     const img = escapeAttr(item.image || PLACEHOLDER_IMAGE);
     const url = item.url ? escapeAttr(item.url) : '';
-    const qty = clampQuantity(item.quantity || 1) || 1;
     const linkStart = url ? `<a href="${url}">` : '<span>';
     const linkEnd = url ? '</a>' : '</span>';
     return `
@@ -320,9 +339,10 @@
         <div class="cart-item-info">
           <div class="cart-item-title">${linkStart}${name}${linkEnd}</div>
           <div class="cart-item-meta">
-            <span class="cart-item-price">${formatBRL(item.price)}</span>
+            <span class="cart-item-price">${formatBRL(unitPrice)}</span>
             <span class="cart-item-total">${formatBRL(lineTotal)}</span>
           </div>
+          ${promoLabel}
           <div class="cart-item-qty" aria-label="Quantidade">
             <button type="button" data-action="decrease" aria-label="Diminuir quantidade">−</button>
             <span>${qty}</span>
@@ -348,13 +368,14 @@
       console.warn('[cart] não foi possível salvar o carrinho', err);
     }
     const snapshot = cart.map(cloneItem);
-    const total = snapshot.reduce((sum,item)=>sum + item.price * item.quantity, 0);
+    const total = snapshot.reduce((sum,item)=>sum + computeLineTotal(item), 0);
     const installment = computeInstallments(total);
     window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT,{detail:{items:snapshot,total,installment}}));
   }
 
   function sanitizeForStorage(item){
-    return {
+    const combo = getComboPrice(item);
+    const base = {
       id: item.id,
       name: item.name,
       price: item.price,
@@ -362,10 +383,23 @@
       url: item.url,
       quantity: clampQuantity(item.quantity || 1)
     };
+    if(Number.isFinite(combo) && combo > 0){
+      base.priceTwo = combo;
+    }
+    return base;
   }
 
   function cloneItem(item){
-    return { id:item.id, name:item.name, price:item.price, image:item.image, url:item.url, quantity:item.quantity };
+    const combo = getComboPrice(item);
+    return {
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
+      url: item.url,
+      quantity: item.quantity,
+      priceTwo: Number.isFinite(combo) && combo > 0 ? combo : null
+    };
   }
 
   function loadCartFromStorage(){
@@ -389,13 +423,15 @@
     const price = Number(entry.price);
     const quantity = clampQuantity(entry.quantity||1) || 1;
     if(!id || !name || !Number.isFinite(price)) return null;
+    const combo = getComboPrice(entry);
     return {
       id,
       name,
       price,
       image: entry.image ? String(entry.image) : '',
       url: entry.url ? String(entry.url) : '',
-      quantity
+      quantity,
+      priceTwo: Number.isFinite(combo) && combo > 0 ? combo : null
     };
   }
 
@@ -406,14 +442,69 @@
     const price = Number(detail.price);
     if(!id || !name || !Number.isFinite(price)) return null;
     const quantity = clampQuantity(detail.quantity||1) || 1;
+    const combo = extractComboPrice(detail);
     return {
       id,
       name,
       price,
       image: detail.image ? String(detail.image) : '',
       url: detail.url ? String(detail.url) : '',
-      quantity
+      quantity,
+      priceTwo: Number.isFinite(combo) && combo > 0 ? combo : null
     };
+  }
+
+  function extractComboPrice(source){
+    if(!source || typeof source !== 'object') return null;
+    for(const key of COMBO_PROP_KEYS){
+      if(Object.prototype.hasOwnProperty.call(source, key)){
+        const combo = normalizeComboPrice(source[key]);
+        if(Number.isFinite(combo) && combo > 0){
+          return combo;
+        }
+      }
+    }
+    return null;
+  }
+
+  function getComboPrice(item){
+    if(!item || typeof item !== 'object') return null;
+    if(Object.prototype.hasOwnProperty.call(item, 'priceTwo')){
+      const normalized = normalizeComboPrice(item.priceTwo);
+      if(Number.isFinite(normalized) && normalized > 0){
+        return normalized;
+      }
+    }
+    return extractComboPrice(item);
+  }
+
+  function normalizeComboPrice(value){
+    if(value === null || value === undefined || value === '') return null;
+    if(typeof value === 'string'){
+      const trimmed = value.trim();
+      if(!trimmed) return null;
+      const cleaned = trimmed.replace(/[^0-9,.-]/g,'');
+      if(!cleaned) return null;
+      const withoutThousands = cleaned.replace(/\.(?=\d{3}(?:\D|$))/g,'');
+      const normalized = withoutThousands.replace(/,/g,'.');
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0 ? num : null;
+  }
+
+  function computeLineTotal(item){
+    if(!item) return 0;
+    const qty = clampQuantity(item.quantity || 1) || 1;
+    const unitPrice = Number(item.price) || 0;
+    const combo = getComboPrice(item);
+    if(Number.isFinite(combo) && combo > 0 && qty >= 2){
+      const pairCount = Math.floor(qty / 2);
+      const remainder = qty % 2;
+      return (pairCount * combo) + (remainder * unitPrice);
+    }
+    return unitPrice * qty;
   }
 
   function readCashbackFromStorage(){

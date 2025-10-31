@@ -146,7 +146,8 @@ if(catSections.length && catChips.length){
       name:product.name,
       price:priceNow,
       image:product.image || '',
-      url:`/produto/${encodeURIComponent(product.id)}`
+      url:`/produto/${encodeURIComponent(product.id)}`,
+      priceTwo: Number.isFinite(comboPrice) && comboPrice>0 ? comboPrice : null
     });
 
     heroHighlight.innerHTML = `
@@ -337,7 +338,8 @@ if(catSections.length && catChips.length){
       name:p.name,
       price:priceNow,
       image:p.image || '',
-      url:`/produto/${encodeURIComponent(p.id)}`
+      url:`/produto/${encodeURIComponent(p.id)}`,
+      priceTwo: Number.isFinite(comboPrice) && comboPrice>0 ? comboPrice : null
     });
     return `
     <article class="product-card">
