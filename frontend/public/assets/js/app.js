@@ -9,6 +9,7 @@ const whatsappCtaContainer=document.querySelector('[data-whatsapp-container]');
 
 const fmt = (n)=> Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const PLACEHOLDER_IMAGE = "/assets/img/product-placeholder.svg";
+const DEFAULT_BRAND_LABEL = 'Sem marca';
 const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
 const WHATSAPP_CONTACT = '5561992074182';
@@ -109,7 +110,7 @@ async function loadProductsWithFallback(){
   try{
     const api = await fetchFromApi();
     if(Array.isArray(api) && api.length){
-      PRODUCTS = api;
+      PRODUCTS = api.map(applyBrandFallback);
       return;
     }
   }catch(e){
@@ -117,7 +118,7 @@ async function loadProductsWithFallback(){
   }
   const ls = loadFromLocalStorage();
   if(ls.length){
-    PRODUCTS = ls;
+    PRODUCTS = ls.map(applyBrandFallback);
     return;
   }
   PRODUCTS = []; // nada encontrado
@@ -158,6 +159,7 @@ function normalizeLocalProduct(p){
   // tenta mapear campos comuns
   const name = p.name ?? p.nome ?? "Produto";
   const category = p.category ?? p.categoria ?? "Outros";
+  const brandRaw = p.brand ?? p.marca ?? "";
   const priceRaw = p.price ?? p.preco ?? p["preço"] ?? 0;
   const oldPriceRaw = p.oldPrice ?? p.precoAntigo ?? p["preçoAntigo"] ?? null;
   const image = p.image ?? p.img ?? p.foto ?? p.imagem ?? "";
@@ -175,7 +177,7 @@ function normalizeLocalProduct(p){
   const id = (p.id || slugify(name)+"-"+Math.random().toString(36).slice(2,7));
 
   return {
-    id, name, category, price, oldPrice,
+    id, name, category, brand: formatBrand(brandRaw), price, oldPrice,
     priceTwo: comboPrice,
     image: cover,
     images: normalizedImages,
@@ -219,6 +221,18 @@ function toNumber(v){
   const normalized = `${isNeg ? "-" : ""}${intPart || "0"}${fracPart ? "." + fracPart : ""}`;
   const n = Number(normalized);
   return Number.isFinite(n) ? n : NaN;
+}
+function formatBrand(value){
+  if(value === null || value === undefined) return DEFAULT_BRAND_LABEL;
+  const str = String(value).trim();
+  return str || DEFAULT_BRAND_LABEL;
+}
+function applyBrandFallback(product){
+  if(!product || typeof product !== 'object') return product;
+  const current = product.brand;
+  const normalized = formatBrand(product.brand ?? product.marca);
+  if(current === normalized) return product;
+  return { ...product, brand: normalized };
 }
 function normalizeText(value){
   return String(value ?? "").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
@@ -506,6 +520,7 @@ function getFiltered(){
     const inTxt = !normalizedTerm
       || includesNormalizedText(p.name, normalizedTerm)
       || includesNormalizedText(p.subtitle, normalizedTerm)
+      || includesNormalizedText(p.brand, normalizedTerm)
       || includesNormalizedText(p.tags, normalizedTerm)
       || includesNormalizedText(p.category, normalizedTerm)
       || includesNormalizedText(caseDevices, normalizedTerm);
@@ -541,6 +556,7 @@ function cardHTML(p){
   const caseDevices = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? normalizeCaseDeviceList(p.specs.caseDevice) : [];
   const caseDeviceLabel = formatCaseDeviceLabel(caseDevices);
   const showCompatibility = caseDeviceLabel && String(p.category || "").toLowerCase() === "capas";
+  const brandLabel = escapeHtml(formatBrand(p.brand));
   const payload = encodeCartPayload({
     id:p.id,
     name:p.name,
@@ -556,6 +572,7 @@ function cardHTML(p){
       <span class="badge badge-black" ${isBlackFriday?"":"hidden"}>Black Friday</span>
     </a>
     <div class="product-body">
+      <p class="product-brand">${brandLabel}</p>
       <h3 class="product-title">${escapeHtml(p.name)}</h3>
       ${p.subtitle ? `<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>` : ""}
       ${showCompatibility ? `<p class="product-compatibility">Compatível com ${escapeHtml(caseDeviceLabel)}</p>` : ""}
