@@ -1,7 +1,7 @@
 const CART_ADD_EVENT = 'iw-cart-add';
 const $ = (s, c=document)=>c.querySelector(s);
 const grid = $("#product-grid"), countEl=$("#count");
-const inputSearch=$("#search"), selectCategory=$("#category"), selectSort=$("#sort");
+const inputSearch=$("#search"), selectCategory=$("#category"), selectBrand=$("#brand"), selectSort=$("#sort");
 const selectCaseDevice=$("#caseDeviceFilter");
 const caseFilterControl=document.querySelector('[data-case-filter]');
 const whatsappButtons=[...document.querySelectorAll('[data-whatsapp-category]')];
@@ -99,6 +99,7 @@ window.addEventListener('storage', (event)=>{
 async function init(){
   await loadProductsWithFallback();
   populateCategories();
+  populateBrands();
   populateCaseDeviceOptions();
   applyInitialQuery();
   bind();
@@ -226,6 +227,9 @@ function formatBrand(value){
   if(value === null || value === undefined) return DEFAULT_BRAND_LABEL;
   const str = String(value).trim();
   return str || DEFAULT_BRAND_LABEL;
+}
+function brandSlug(value){
+  return slugify(formatBrand(value));
 }
 function applyBrandFallback(product){
   if(!product || typeof product !== 'object') return product;
@@ -358,6 +362,22 @@ function syncUrlCategory(categoryValue, replaceSearch){
     history.replaceState({}, '', url);
   }catch{}
 }
+function syncUrlBrand(brandValue, replaceSearch){
+  if(typeof history === 'undefined' || !history.replaceState) return;
+  try{
+    const url = new URL(location.href);
+    const slug = brandSlug(brandValue);
+    if(slug && brandValue !== "__all"){
+      url.searchParams.set('brand', slug);
+    }else{
+      url.searchParams.delete('brand');
+    }
+    if(replaceSearch){
+      url.searchParams.delete('q');
+    }
+    history.replaceState({}, '', url);
+  }catch{}
+}
 function syncUrlSearch(term){
   if(typeof history === 'undefined' || !history.replaceState) return;
   try{
@@ -379,6 +399,28 @@ function populateCategories(){
   cats.forEach(c=>{
     const o=document.createElement("option"); o.value=c; o.textContent=c; selectCategory.appendChild(o);
   });
+}
+function collectBrands(){
+  const seen = new Set();
+  const list = [];
+  PRODUCTS.forEach(p=>{
+    const label = formatBrand(p?.brand);
+    const key = brandSlug(label);
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    list.push(label);
+  });
+  return list.sort((a,b)=>a.localeCompare(b, 'pt-BR'));
+}
+function populateBrands(){
+  if(!selectBrand) return;
+  const options = collectBrands();
+  const base = [`<option value="__all">Todas</option>`];
+  options.forEach(opt=>{
+    const safe = escapeHtml(opt);
+    base.push(`<option value="${safe}">${safe}</option>`);
+  });
+  selectBrand.innerHTML = base.join("");
 }
 function collectCaseDeviceOptions(){
   const seen = new Set();
@@ -418,23 +460,43 @@ function updateCaseDeviceFilterVisibility(){
   }
 }
 
+function findBrandMatch(param){
+  if(!param || !selectBrand) return "";
+  const target = brandSlug(param);
+  if(!target) return "";
+  const option = [...selectBrand.options].find(o => o.value !== "__all" && brandSlug(o.value) === target);
+  return option ? option.value : "";
+}
+
 function applyInitialQuery(){
   const params = new URL(location.href).searchParams;
   const rawSearch = (params.get("q") || "").trim();
   const rawCategory = (params.get("category") || "").trim();
   const rawCaseDevice = (params.get("caseDevice") || "").trim();
+  const rawBrand = (params.get("brand") || "").trim();
   const hasCategoryParam = Boolean(rawCategory);
   const hasCaseParam = Boolean(rawCaseDevice);
+  const hasBrandParam = Boolean(rawBrand);
 
   let matchedCategory = findCategoryMatch(rawCategory);
   let matchedFromSearch = false;
   let matchedCaseDevice = hasCaseParam ? findCaseDeviceMatch(rawCaseDevice) : "";
+  let matchedBrand = hasBrandParam ? findBrandMatch(rawBrand) : "";
+  let matchedBrandFromSearch = false;
 
   if (!matchedCategory && rawSearch) {
     const fallbackMatch = findCategoryMatch(rawSearch);
     if (fallbackMatch) {
       matchedCategory = fallbackMatch;
       matchedFromSearch = true;
+    }
+  }
+
+  if (!matchedBrand && rawSearch) {
+    const fallbackBrand = findBrandMatch(rawSearch);
+    if (fallbackBrand) {
+      matchedBrand = fallbackBrand;
+      matchedBrandFromSearch = true;
     }
   }
 
@@ -478,6 +540,18 @@ function applyInitialQuery(){
   }else if(hasCaseParam){
     syncUrlCaseDevice("__all");
   }
+
+  if(selectBrand){
+    if(matchedBrand){
+      selectBrand.value = matchedBrand;
+      syncUrlBrand(matchedBrand, matchedBrandFromSearch && !hasBrandParam);
+    }else{
+      selectBrand.value = "__all";
+      if(hasBrandParam){
+        syncUrlBrand("__all");
+      }
+    }
+  }
 }
 
 function bind(){
@@ -495,6 +569,12 @@ function bind(){
     }
     render();
   });
+  if(selectBrand){
+    selectBrand.addEventListener("change", ()=>{
+      syncUrlBrand(selectBrand.value, false);
+      render();
+    });
+  }
   selectSort.addEventListener("change", render);
   if(selectCaseDevice){
     selectCaseDevice.addEventListener("change", ()=>{
@@ -511,12 +591,15 @@ function getFiltered(){
   const selectedCatSlug = cat === "__all" ? "" : categorySlug(cat);
   const isCapasSelected = isCapasCategory(cat);
   const shouldFilterCase = Boolean(selectCaseDevice) && !selectCaseDevice.disabled && isCapasSelected && selectCaseDevice.value !== "__all";
+  const shouldFilterBrand = Boolean(selectBrand) && selectBrand.value !== "__all";
+  const selectedBrandSlug = shouldFilterBrand ? brandSlug(selectBrand.value) : "";
   const selectedCaseSlug = shouldFilterCase ? caseDeviceSlug(selectCaseDevice.value) : "";
   let list = PRODUCTS.filter(p=>{
     const productCatSlug = categorySlug(p.category);
     const inCat = !selectedCatSlug || (productCatSlug === selectedCatSlug);
     const caseDevices = (p.specs && typeof p.specs === "object" && !Array.isArray(p.specs)) ? normalizeCaseDeviceList(p.specs.caseDevice) : [];
     const matchesCase = !shouldFilterCase || caseDevices.some(value => caseDeviceSlug(value) === selectedCaseSlug);
+    const matchesBrand = !shouldFilterBrand || brandSlug(p.brand) === selectedBrandSlug;
     const inTxt = !normalizedTerm
       || includesNormalizedText(p.name, normalizedTerm)
       || includesNormalizedText(p.subtitle, normalizedTerm)
@@ -524,7 +607,7 @@ function getFiltered(){
       || includesNormalizedText(p.tags, normalizedTerm)
       || includesNormalizedText(p.category, normalizedTerm)
       || includesNormalizedText(caseDevices, normalizedTerm);
-    return inCat && inTxt && matchesCase;
+    return inCat && inTxt && matchesCase && matchesBrand;
   });
   const s = selectSort.value;
   if(s==="price_asc") list.sort((a,b)=>a.price-b.price);
