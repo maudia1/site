@@ -82,7 +82,7 @@
         <div class="product-actions">
           <a id="product-cta" class="btn btn-cta" href="#" target="_blank" rel="noopener">Comprar agora</a>
           <button id="product-add-cart" class="btn btn-ghost" type="button" data-add-to-cart>Adicionar ao carrinho</button>
-          <a class="btn btn-ghost" href="/catalogo">Voltar ao cat&aacute;logo</a>
+          <button id="product-add-combo" class="btn btn-ghost" type="button" hidden>Leve 2</button>
         </div>
       </article>
     </section>
@@ -158,6 +158,7 @@
   const thumbsEl = document.getElementById('product-thumbs');
   const ctaEl = document.getElementById('product-cta');
   const addCartBtn = document.getElementById('product-add-cart');
+  const addComboBtn = document.getElementById('product-add-combo');
   const crumb = document.getElementById('crumb-product');
   const lightbox = document.getElementById('product-lightbox');
   const lightboxImg = document.getElementById('product-lightbox-image');
@@ -172,12 +173,35 @@
       const price = Number(currentProduct.price);
       if(!currentProduct.id || !currentProduct.name || !Number.isFinite(price)) return;
       const image = currentProduct.image || (Array.isArray(currentProduct.images)&&currentProduct.images[0]) || '';
+      const comboPrice = normalizeComboPrice(currentProduct.priceTwo);
       const payload = {
         id: currentProduct.id,
         name: currentProduct.name,
         price,
         image,
-        url: `/produto/${encodeURIComponent(currentProduct.id)}`
+        url: `/produto/${encodeURIComponent(currentProduct.id)}`,
+        priceTwo: comboPrice
+      };
+      window.dispatchEvent(new CustomEvent(CART_ADD_EVENT,{detail:payload}));
+    });
+  }
+
+  if(addComboBtn){
+    addComboBtn.disabled = true;
+    addComboBtn.addEventListener('click', ()=>{
+      if(!currentProduct) return;
+      const price = Number(currentProduct.price);
+      if(!currentProduct.id || !currentProduct.name || !Number.isFinite(price)) return;
+      const image = currentProduct.image || (Array.isArray(currentProduct.images)&&currentProduct.images[0]) || '';
+      const comboPrice = normalizeComboPrice(currentProduct.priceTwo);
+      const payload = {
+        id: currentProduct.id,
+        name: currentProduct.name,
+        price,
+        image,
+        url: `/produto/${encodeURIComponent(currentProduct.id)}`,
+        priceTwo: comboPrice,
+        quantity: 2
       };
       window.dispatchEvent(new CustomEvent(CART_ADD_EVENT,{detail:payload}));
     });
@@ -200,12 +224,28 @@
       if(Object.prototype.hasOwnProperty.call(source, key)){
         const raw = source[key];
         if(raw === null || raw === undefined || raw === '') return null;
-        const num = Number(raw);
+        const num = normalizeComboPrice(raw);
         if(!Number.isFinite(num) || num <= 0) return null;
         return num;
       }
     }
     return null;
+  }
+
+  function normalizeComboPrice(value){
+    if(value === null || value === undefined || value === '') return null;
+    if(typeof value === 'string'){
+      const trimmed = value.trim();
+      if(!trimmed) return null;
+      const cleaned = trimmed.replace(/[^0-9,.-]/g,'');
+      if(!cleaned) return null;
+      const withoutThousands = cleaned.replace(/\.(?=\d{3}(?:\D|$))/g,'');
+      const normalized = withoutThousands.replace(/,/g,'.');
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0 ? num : null;
   }
 
   function normalizeGallery(...sources){
@@ -312,6 +352,10 @@
     if(addCartBtn){
       addCartBtn.disabled = false;
     }
+    if(addComboBtn){
+      addComboBtn.disabled = false;
+      addComboBtn.hidden = true;
+    }
 
     let shouldShowDetails = false;
 
@@ -335,6 +379,14 @@
     }
 
     const comboPrice = readComboPrice(p);
+    currentProduct.priceTwo = comboPrice ?? currentProduct.priceTwo ?? null;
+    if(addComboBtn){
+      if(Number.isFinite(comboPrice) && comboPrice>0){
+        addComboBtn.hidden = false;
+      }else{
+        addComboBtn.hidden = true;
+      }
+    }
     if(bundleBox && bundlePriceEl && bundleSavingEl){
       if(Number.isFinite(comboPrice) && comboPrice>0){
         const base = Number(p.price) || 0;
