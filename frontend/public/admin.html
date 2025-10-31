@@ -1116,7 +1116,6 @@ async function save(){
   if(!FIXED_BRANDS.includes(body.brand)){ $("#msg").textContent="Escolha uma das marcas disponíveis."; return; }
   if(!Number.isFinite(body.price) || body.price<=0){ $("#msg").textContent="Preço inválido."; return; }
   if(!gallery.length){ $("#msg").textContent="Adicione pelo menos a foto principal."; return; }
-  if(!body.description){ $("#msg").textContent="Descreva o produto."; return; }
   $("#image").value=body.image;
   $("#image2").value=gallery[1]||"";
   $("#image3").value=gallery[2]||"";
