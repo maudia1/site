@@ -1,4 +1,5 @@
 const CART_ADD_EVENT = 'iw-cart-add';
+const DEFAULT_BRAND_LABEL = 'Sem marca';
 
 function encodeCartPayload(data){
   try{
@@ -139,6 +140,7 @@ if(catSections.length && catChips.length){
     const savingsFromOld = hasOld ? Number(product.oldPrice) - priceNow : 0;
     const savingsFromCb = cb ? cb.applied : 0;
     const totalSavings = Math.max(savingsFromOld, savingsFromCb);
+    const brandLabel = escapeHtml(formatBrand(product.brand));
     const payload = encodeCartPayload({
       id:product.id,
       name:product.name,
@@ -151,6 +153,7 @@ if(catSections.length && catChips.length){
       <article class="mega-card">
         <div class="mega-copy">
           <span class="mega-pill">Mega oferta</span>
+          <span class="mega-brand">${brandLabel}</span>
           <h1 class="mega-title">${escapeHtml(product.name)}</h1>
           ${product.subtitle ? `<p class="mega-subtitle">${escapeHtml(product.subtitle)}</p>` : ''}
           <div class="mega-pricing">
@@ -328,6 +331,7 @@ if(catSections.length && catChips.length){
     const comboPrice = readComboPrice(p);
     const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
     const hasCombo = Number.isFinite(comboPrice) && comboPrice>0;
+    const brandLabel = escapeHtml(formatBrand(p.brand));
     const payload = encodeCartPayload({
       id:p.id,
       name:p.name,
@@ -343,6 +347,7 @@ if(catSections.length && catChips.length){
         <span class="badge badge-black" ${isBlackFriday?'':'hidden'}>Black Friday</span>
       </a>
       <div class="product-body">
+        <p class="product-brand">${brandLabel}</p>
         <h3 class="product-title">${escapeHtml(p.name)}</h3>
         ${p.subtitle?`<p class="product-subtitle">${escapeHtml(p.subtitle)}</p>`:''}
         <div class="product-pricing">
@@ -440,12 +445,19 @@ if(catSections.length && catChips.length){
     return arr.map(item=>({
       id:item.id,
       name:item.name,
+      brand: formatBrand(item.brand ?? item.marca),
       subtitle:item.subtitle,
       price:Number(item.price),
       oldPrice:item.oldPrice!=null?Number(item.oldPrice):null,
       priceTwo: readComboPrice(item),
       image:item.image || (Array.isArray(item.images)&&item.images[0]) || ''
     })).filter(p=>p.id && p.name && Number.isFinite(Number(p.price)) && p.image);
+  }
+
+  function formatBrand(value){
+    if(value === null || value === undefined) return DEFAULT_BRAND_LABEL;
+    const str = String(value).trim();
+    return str || DEFAULT_BRAND_LABEL;
   }
 
   function formatBRL(n){
