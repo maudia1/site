@@ -171,6 +171,7 @@
                 <option value="">Selecione</option>
                 <option value="Fones">Fones</option>
                 <option value="Capas">Capas</option>
+                <option value="Película">Película</option>
                 <option value="Carregadores">Carregadores</option>
                 <option value="Power Bank">Power Bank</option>
                 <option value="Áudio">Áudio</option>
@@ -383,8 +384,8 @@
 const $=(s,c=document)=>c.querySelector(s);
 const fmt=(n)=>Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const maybeFmt=(n)=>Number.isFinite(Number(n))?fmt(Number(n)):"—";
-const FIXED_CATEGORIES=["Fones","Capas","Carregadores","Power Bank","Áudio","Acessórios"];
-const FIXED_BRANDS=["JBL","PRODIGEE","IMAGINE","HREBOS","KIMASTER","SHOKAN","Puregear"];
+const FIXED_CATEGORIES=["Fones","Capas","Película","Carregadores","Power Bank","Áudio","Acessórios"];
+const FIXED_BRANDS=["JBL","PRODIGEE","IMAGINE","HREBOS","KIMASTER","SHOKAN","Puregear","Outros"];
 const CASE_DEVICE_OPTIONS=[
   "iPhone 11",
   "iPhone 12 / 12 Pro",
@@ -1106,7 +1107,7 @@ async function save(){
 
   if(!body.name){ $("#msg").textContent="Informe o nome do produto."; return; }
   if(!body.category){ $("#msg").textContent="Informe a categoria."; return; }
-  if(!FIXED_CATEGORIES.includes(body.category)){ $("#msg").textContent="Escolha uma das categorias disponíveis (Fones, Capas, Carregadores, Power Bank, Áudio ou Acessórios)."; return; }
+  if(!FIXED_CATEGORIES.includes(body.category)){ $("#msg").textContent="Escolha uma das categorias disponíveis (Fones, Capas, Película, Carregadores, Power Bank, Áudio ou Acessórios)."; return; }
   const isCapas=body.category.toLowerCase()==="capas";
   if(isCapas){
     if(!caseDeviceSelected.length){ $("#msg").textContent="Selecione o modelo de iPhone da capa."; return; }
