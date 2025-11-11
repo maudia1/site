@@ -462,8 +462,28 @@ body.iw-modal-open{overflow:hidden}
 .product-card:hover{ transform:translateY(-3px); border-color:rgba(255,255,255,.18); box-shadow:0 8px 24px rgba(0,0,0,.35) }
 
 /* Imagem */
-.product-media{ display:block; aspect-ratio:1 / 1; background:radial-gradient(60% 60% at 50% 40%, rgba(255,255,255,.08), rgba(255,255,255,.02)); position:relative }
+.product-media{ display:block; aspect-ratio:1 / 1; background:radial-gradient(60% 60% at 50% 40%, rgba(255,255,255,.08), rgba(255,255,255,.02)); position:relative; border-radius:inherit; overflow:hidden }
+.product-media-track{
+  display:flex;
+  width:100%;
+  height:100%;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  touch-action:pan-y;
+  user-select:none;
+  cursor:grab;
+}
+.product-media-track:active{ cursor:grabbing; }
+.product-media-track::-webkit-scrollbar{ display:none }
+.product-media-slide{ flex:0 0 100%; height:100%; display:flex; align-items:center; justify-content:center; scroll-snap-align:center }
 .product-media img{ width:100%; height:100%; object-fit:contain; padding:18px }
+.product-media-dots{ position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:6px; z-index:3; pointer-events:none; padding:6px 12px; border-radius:999px; background:rgba(15,23,42,.55); backdrop-filter:blur(12px) }
+.product-media-dot{ width:8px; height:8px; border-radius:999px; background:rgba(255,255,255,.45); border:none; padding:0; pointer-events:auto; transition:transform .18s ease, background .18s ease; cursor:pointer }
+.product-media-dot.is-active{ background:#fff; transform:scale(1.2) }
+.product-media-dot:focus-visible{ outline:2px solid #fff; outline-offset:2px }
 .product-media .badge{ position:absolute; top:10px; left:10px; padding:5px 10px; font-size:.75rem; border-radius:999px; background:rgba(255,255,255,.85); color:#050505; font-weight:600 }
 .product-media .badge-black{ left:auto; right:10px; background:#111827; color:#f9fafb; box-shadow:0 6px 16px rgba(15,23,42,.25) }
 
