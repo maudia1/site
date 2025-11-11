@@ -1,6 +1,7 @@
 const CART_ADD_EVENT = 'iw-cart-add';
 const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
 const CASHBACK_EVENT = 'iw-cashback-update';
+const PLACEHOLDER_IMAGE = '/assets/img/product-placeholder.svg';
 
 const els = {
   grid: null,
@@ -64,6 +65,9 @@ function render(){
     els.count.textContent = products.length === 1
       ? '1 oferta especial disponível agora.'
       : `${products.length} ofertas especiais preparadas para a Black Friday.`;
+    if(window.initializeProductGalleries){
+      window.initializeProductGalleries(els.grid);
+    }
   }else{
     els.grid.hidden = true;
     els.grid.innerHTML = '';
@@ -90,17 +94,40 @@ async function loadBlackFridayProducts(){
 function normalizeProducts(arr){
   if(!Array.isArray(arr)) return [];
   return arr
-    .map(item=>({
-      id:item.id,
-      name:item.name,
-      subtitle:item.subtitle,
-      price:Number(item.price),
-      oldPrice:item.oldPrice!=null?Number(item.oldPrice):null,
-      priceTwo: readComboPrice(item),
-      image:item.image || (Array.isArray(item.images) && item.images[0]) || '',
-      description:item.description || ''
-    }))
+    .map(item=>{
+      const gallery = normalizeGallery(item.image, item.images, item.fotos, item.imagens).slice(0,3);
+      return {
+        id:item.id,
+        name:item.name,
+        subtitle:item.subtitle,
+        price:Number(item.price),
+        oldPrice:item.oldPrice!=null?Number(item.oldPrice):null,
+        priceTwo: readComboPrice(item),
+        image:gallery[0] || '',
+        images:gallery,
+        description:item.description || ''
+      };
+    })
     .filter(p=>p.id && p.name && Number.isFinite(p.price) && p.image);
+}
+
+function normalizeGallery(...sources){
+  const collected = [];
+  sources.forEach(src=>{
+    if(Array.isArray(src)){
+      collected.push(...src);
+    }else if(src!=null){
+      collected.push(src);
+    }
+  });
+  const unique = [];
+  collected.forEach(value=>{
+    const str = String(value ?? '').trim();
+    if(str && !unique.includes(str)){
+      unique.push(str);
+    }
+  });
+  return unique;
 }
 
 function renderCard(p){
@@ -113,18 +140,37 @@ function renderCard(p){
   const comboPrice = readComboPrice(p);
   const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
   const hasCombo = Number.isFinite(comboPrice) && comboPrice>0;
+  const gallery = normalizeGallery(p.image, Array.isArray(p.images)?p.images:[]).slice(0,3);
+  const slidesSource = (gallery.length ? gallery : [p.image || PLACEHOLDER_IMAGE]).filter(Boolean);
+  if(!slidesSource.length) slidesSource.push(PLACEHOLDER_IMAGE);
+  const altBase = String(p.name || 'Produto');
+  const slidesHtml = slidesSource.map((url,index)=>{
+    const altText = slidesSource.length>1 ? `${altBase} - imagem ${index+1}` : altBase;
+    return `
+        <div class="product-media-slide" data-gallery-slide="${index}">
+          <img src="${escapeHtml(url || PLACEHOLDER_IMAGE)}" alt="${escapeHtml(altText)}">
+        </div>`;
+  }).join('');
+  const dotsHtml = slidesSource.length>1 ? `
+        <div class="product-media-dots" role="tablist" aria-label="Galeria de imagens">
+          ${slidesSource.map((_,index)=>`<button type="button" class="product-media-dot${index===0?' is-active':''}" data-gallery-dot="${index}" aria-label="Ver imagem ${index+1} de ${slidesSource.length} de ${escapeHtml(altBase)}"></button>`).join('')}
+        </div>` : '';
+  const primaryImage = slidesSource[0] || PLACEHOLDER_IMAGE;
   const payload = encodeCartPayload({
     id:p.id,
     name:p.name,
     price:priceNow,
-    image:p.image || '',
+    image:primaryImage,
     url:`/produto/${encodeURIComponent(p.id)}`,
     priceTwo: Number.isFinite(comboPrice) && comboPrice>0 ? comboPrice : null
   });
   return `
   <article class="product-card">
-    <a class="product-media" href="/produto/${encodeURIComponent(p.id)}">
-      <img src="${p.image}" alt="${escapeHtml(p.name)}">
+    <a class="product-media" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}" data-gallery>
+      <div class="product-media-track" data-gallery-track>
+        ${slidesHtml}
+      </div>
+      ${dotsHtml}
       <span class="badge" ${pct?'':'hidden'}>- ${pct}%</span>
       <span class="badge badge-black" ${isBlackFriday?'':'hidden'}>Black Friday</span>
     </a>
