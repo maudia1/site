@@ -164,6 +164,13 @@
   const lightboxImg = document.getElementById('product-lightbox-image');
   const lightboxDismissEls = Array.from(document.querySelectorAll('[data-lightbox-dismiss]'));
   const body = document.body;
+  const placeholderImage = '/assets/img/product-placeholder.svg';
+  let galleryImages = [];
+  let galleryButtons = [];
+  let currentGalleryIndex = 0;
+  let touchStartX = null;
+  let touchStartY = null;
+  let touchSwiped = false;
   let lastFocus = null;
   let currentProduct = null;
   if(addCartBtn){
@@ -297,10 +304,62 @@
   }
 
   if(imageTrigger){
+    const SWIPE_THRESHOLD = 40;
     imageTrigger.addEventListener('click',()=>{
+      if(touchSwiped){
+        touchSwiped = false;
+        return;
+      }
       if(!imgEl || !imgEl.src) return;
       const alt = imgEl.alt || nameEl.textContent || 'Imagem do produto';
       openLightbox(imgEl.src, alt);
+    });
+
+    imageTrigger.addEventListener('touchstart', event=>{
+      if(!event.touches || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchSwiped = false;
+    });
+
+    imageTrigger.addEventListener('touchmove', event=>{
+      if(touchStartX === null || touchStartY === null) return;
+      if(!event.touches || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
+      if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD){
+        event.preventDefault();
+      }
+    }, { passive: false });
+
+    imageTrigger.addEventListener('touchend', event=>{
+      if(touchStartX === null || touchStartY === null) return;
+      const startX = touchStartX;
+      const startY = touchStartY;
+      const touch = event.changedTouches && event.changedTouches[0];
+      touchStartX = null;
+      touchStartY = null;
+      if(!touch) return;
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if(Math.abs(dx) <= Math.abs(dy) || Math.abs(dx) < SWIPE_THRESHOLD) return;
+      touchSwiped = true;
+      if(dx < 0){
+        showNextImage();
+      }else{
+        showPreviousImage();
+      }
+      window.setTimeout(()=>{
+        touchSwiped = false;
+      }, 500);
+    });
+
+    imageTrigger.addEventListener('touchcancel', ()=>{
+      touchStartX = null;
+      touchStartY = null;
+      touchSwiped = false;
     });
   }
 
@@ -465,10 +524,11 @@
     }
 
     const gallery = normalizeGallery(p.image, Array.isArray(p.images)?p.images:[]).slice(0,3);
-    const placeholder = '/assets/img/product-placeholder.svg';
-    const primary = gallery[0] || placeholder;
-    imgEl.src = primary;
-    imgEl.alt = p.name;
+    const primary = gallery[0] || placeholderImage;
+    galleryImages = gallery.length ? gallery.slice() : [primary];
+    currentGalleryIndex = 0;
+    galleryButtons = [];
+    updateMainImage(primary, p.name);
     if(imageTrigger){
       imageTrigger.disabled = !primary;
       imageTrigger.setAttribute('aria-label', `Ampliar imagem de ${p.name}`);
@@ -478,33 +538,58 @@
       thumbsEl.innerHTML = gallery.map((url,index)=>{
         const safeUrl = escapeHtml(url);
         const pressed = index===0 ? 'true' : 'false';
-        return `<button type="button" data-url="${safeUrl}" aria-pressed="${pressed}" class="${index===0?'is-active':''}"><img src="${safeUrl}" alt="${escapeHtml(p.name)}"></button>`;
+        return `<button type="button" data-index="${index}" aria-pressed="${pressed}" class="${index===0?'is-active':''}"><img src="${safeUrl}" alt="${escapeHtml(p.name)}"></button>`;
       }).join('');
       thumbsEl.hidden = false;
-      const buttons = Array.from(thumbsEl.querySelectorAll('button'));
-      const setActive=(active)=>{
-        buttons.forEach(btn=>{
-          const isActive = btn===active;
-          btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-          btn.classList.toggle('is-active', isActive);
-        });
-      };
-      setActive(buttons[0]);
-      buttons.forEach(btn=>{
+      galleryButtons = Array.from(thumbsEl.querySelectorAll('button'));
+      galleryButtons.forEach(btn=>{
         btn.addEventListener('click',()=>{
-          const url = btn.dataset.url || primary;
-          imgEl.src = url;
-          imgEl.alt = p.name;
-          setActive(btn);
+          const idx = Number(btn.dataset.index);
+          if(Number.isNaN(idx)) return;
+          setCurrentGalleryIndex(idx);
         });
       });
+      setCurrentGalleryIndex(0);
     }else{
       thumbsEl.hidden = true;
       thumbsEl.innerHTML = '';
+      setCurrentGalleryIndex(0);
     }
 
     const message = encodeURIComponent(`Ol\u00e1! Tenho interesse no produto ${p.name}`);
     ctaEl.href = `https://wa.me/${CHECKOUT_WHATSAPP}?text=${message}`;
+  }
+
+  function updateMainImage(src, alt){
+    if(!imgEl) return;
+    imgEl.src = src || placeholderImage;
+    imgEl.alt = alt || '';
+  }
+
+  function setCurrentGalleryIndex(index){
+    if(!galleryImages.length) return;
+    const total = galleryImages.length;
+    const normalized = ((index % total) + total) % total;
+    currentGalleryIndex = normalized;
+    const src = galleryImages[normalized] || placeholderImage;
+    updateMainImage(src, nameEl.textContent);
+    if(galleryButtons.length){
+      galleryButtons.forEach((btn, idx)=>{
+        const isActive = idx === normalized;
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        btn.classList.toggle('is-active', isActive);
+      });
+    }
+  }
+
+  function showNextImage(){
+    if(galleryImages.length <= 1) return;
+    setCurrentGalleryIndex(currentGalleryIndex + 1);
+  }
+
+  function showPreviousImage(){
+    if(galleryImages.length <= 1) return;
+    setCurrentGalleryIndex(currentGalleryIndex - 1);
   }
 
   function escapeHtml(str){
