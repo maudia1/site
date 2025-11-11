@@ -99,8 +99,32 @@
     </section>
 
     <div id="product-status" class="product-status muted"></div>
+
   </div>
 </main>
+
+<section id="product-related" class="product-related" hidden aria-labelledby="product-related-title">
+  <div class="iw-container">
+    <div class="product-related-head">
+      <div class="product-related-copy">
+        <span class="pill pill-contrast" aria-hidden="true">Black Friday</span>
+        <h2 id="product-related-title" class="section-title">Outras ofertas Black Friday</h2>
+        <p class="muted">Selecionamos mais algumas ofertas da Black Friday para você aproveitar sem sair desta página.</p>
+      </div>
+      <a class="btn btn-ghost" href="/black-friday">Ir para Black Friday</a>
+    </div>
+    <div class="product-related-carousel" data-related-carousel hidden>
+      <button class="product-related-control" type="button" data-related-prev aria-label="Ver oferta anterior">
+        <span aria-hidden="true">&#10094;</span>
+      </button>
+      <div class="product-related-list" data-related-track role="list"></div>
+      <button class="product-related-control" type="button" data-related-next aria-label="Ver próxima oferta">
+        <span aria-hidden="true">&#10095;</span>
+      </button>
+    </div>
+    <p id="product-related-empty" class="product-related-empty muted small" hidden>Nenhuma outra oferta Black Friday disponível no momento.</p>
+  </div>
+</section>
 
 <div id="product-lightbox" class="product-lightbox" role="dialog" aria-modal="true" hidden>
   <div class="product-lightbox-backdrop" data-lightbox-dismiss></div>
@@ -165,6 +189,12 @@
   const lightboxDismissEls = Array.from(document.querySelectorAll('[data-lightbox-dismiss]'));
   const body = document.body;
   const placeholderImage = '/assets/img/product-placeholder.svg';
+  const relatedSection = document.getElementById('product-related');
+  const relatedCarousel = relatedSection ? relatedSection.querySelector('[data-related-carousel]') : null;
+  const relatedTrack = relatedCarousel ? relatedCarousel.querySelector('[data-related-track]') : null;
+  const relatedPrev = relatedCarousel ? relatedCarousel.querySelector('[data-related-prev]') : null;
+  const relatedNext = relatedCarousel ? relatedCarousel.querySelector('[data-related-next]') : null;
+  const relatedEmpty = document.getElementById('product-related-empty');
   let galleryImages = [];
   let galleryButtons = [];
   let currentGalleryIndex = 0;
@@ -173,6 +203,10 @@
   let touchSwiped = false;
   let lastFocus = null;
   let currentProduct = null;
+  let relatedRenderedFor = null;
+  let relatedScrollFrame = null;
+  const RELATED_LIMIT = 3;
+  setupRelatedCarousel();
   if(addCartBtn){
     addCartBtn.disabled = true;
     addCartBtn.addEventListener('click', ()=>{
@@ -558,6 +592,8 @@
 
     const message = encodeURIComponent(`Ol\u00e1! Tenho interesse no produto ${p.name}`);
     ctaEl.href = `https://wa.me/${CHECKOUT_WHATSAPP}?text=${message}`;
+
+    loadRelatedBlackFriday(p.id);
   }
 
   function updateMainImage(src, alt){
@@ -590,6 +626,159 @@
   function showPreviousImage(){
     if(galleryImages.length <= 1) return;
     setCurrentGalleryIndex(currentGalleryIndex - 1);
+  }
+
+  async function loadRelatedBlackFriday(excludeId){
+    if(!relatedSection) return;
+    if(!excludeId){
+      renderRelated([]);
+      return;
+    }
+    if(relatedRenderedFor === excludeId) return;
+    showRelatedLoading();
+    try{
+      const url = new URL('/api/products', location.origin);
+      url.searchParams.set('black','1');
+      url.searchParams.set('_', Date.now());
+      const res = await fetch(url.toString());
+      if(!res.ok){
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const payload = await res.json();
+      const normalized = Array.isArray(payload)
+        ? payload.map(normalizeRelatedProduct).filter(Boolean).filter(item=>item.id !== excludeId).slice(0, RELATED_LIMIT)
+        : [];
+      relatedRenderedFor = excludeId;
+      renderRelated(normalized);
+    }catch(err){
+      console.error('Falha ao carregar ofertas Black Friday relacionadas', err);
+      renderRelated([]);
+    }
+  }
+
+  function normalizeRelatedProduct(item){
+    if(!item) return null;
+    const price = Number(item.price);
+    if(!Number.isFinite(price)) return null;
+    const gallery = normalizeGallery(item.image, item.images, item.fotos, item.imagens).slice(0,3);
+    const name = String(item.name || '').trim();
+    if(!item.id || !name) return null;
+    return {
+      id: item.id,
+      name,
+      price,
+      image: gallery[0] || placeholderImage
+    };
+  }
+
+  function setupRelatedCarousel(){
+    if(!relatedSection) return;
+    if(relatedPrev){
+      relatedPrev.addEventListener('click', event=>{
+        event.preventDefault();
+        scrollRelated(-1);
+      });
+    }
+    if(relatedNext){
+      relatedNext.addEventListener('click', event=>{
+        event.preventDefault();
+        scrollRelated(1);
+      });
+    }
+    if(relatedTrack){
+      relatedTrack.addEventListener('scroll', ()=>{
+        if(relatedScrollFrame){
+          window.cancelAnimationFrame(relatedScrollFrame);
+        }
+        relatedScrollFrame = window.requestAnimationFrame(updateRelatedControls);
+      });
+    }
+    window.addEventListener('resize', updateRelatedControls);
+    updateRelatedControls();
+  }
+
+  function showRelatedLoading(){
+    if(!relatedSection) return;
+    relatedSection.hidden = false;
+    if(relatedCarousel){
+      relatedCarousel.hidden = true;
+    }
+    if(relatedEmpty){
+      relatedEmpty.hidden = false;
+      relatedEmpty.textContent = 'Carregando ofertas da Black Friday...';
+    }
+    if(relatedTrack){
+      relatedTrack.innerHTML = '';
+      relatedTrack.scrollLeft = 0;
+    }
+    updateRelatedControls();
+  }
+
+  function renderRelated(list){
+    if(!relatedSection) return;
+    const hasItems = Array.isArray(list) && list.length > 0;
+    relatedSection.hidden = false;
+    if(relatedCarousel){
+      relatedCarousel.hidden = !hasItems;
+    }
+    if(relatedEmpty){
+      relatedEmpty.hidden = hasItems;
+      if(!hasItems){
+        relatedEmpty.textContent = 'Nenhuma outra oferta Black Friday disponível no momento.';
+      }
+    }
+    if(!hasItems){
+      if(relatedTrack){
+        relatedTrack.innerHTML = '';
+        relatedTrack.scrollLeft = 0;
+      }
+      updateRelatedControls();
+      return;
+    }
+    if(relatedTrack){
+      relatedTrack.innerHTML = list.map(renderRelatedCard).join('');
+      relatedTrack.scrollTo({ left: 0, behavior: 'auto' });
+    }
+    updateRelatedControls();
+  }
+
+  function renderRelatedCard(product){
+    const image = product.image || placeholderImage;
+    return `
+      <article class="product-related-card" role="listitem">
+        <a href="/produto/${encodeURIComponent(product.id)}">
+          <div class="product-related-media">
+            <img src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" loading="lazy">
+          </div>
+          <div class="product-related-body">
+            <h3 class="product-related-title">${escapeHtml(product.name)}</h3>
+            <span class="product-related-price">${fmt(product.price)}</span>
+            <span class="product-related-cta">Ver oferta</span>
+          </div>
+        </a>
+      </article>`;
+  }
+
+  function scrollRelated(direction){
+    if(!relatedTrack) return;
+    const firstCard = relatedTrack.querySelector('.product-related-card');
+    const computed = window.getComputedStyle(relatedTrack);
+    const gap = Number.parseFloat(computed.columnGap || computed.gap || '0') || 0;
+    const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : relatedTrack.clientWidth;
+    const amount = cardWidth + gap;
+    relatedTrack.scrollBy({ left: direction * amount, behavior: 'smooth' });
+  }
+
+  function updateRelatedControls(){
+    if(!relatedTrack) return;
+    const maxScroll = Math.max(relatedTrack.scrollWidth - relatedTrack.clientWidth, 0);
+    const current = relatedTrack.scrollLeft;
+    if(relatedPrev){
+      relatedPrev.disabled = current <= 8;
+    }
+    if(relatedNext){
+      relatedNext.disabled = current >= maxScroll - 8;
+    }
   }
 
   function escapeHtml(str){

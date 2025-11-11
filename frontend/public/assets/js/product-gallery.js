@@ -18,6 +18,8 @@
 
     const slides = Array.from(track.querySelectorAll('[data-gallery-slide]'));
     const dots = Array.from(gallery.querySelectorAll('[data-gallery-dot]'));
+    const prevBtn = gallery.querySelector('[data-gallery-prev]');
+    const nextBtn = gallery.querySelector('[data-gallery-next]');
 
     track.setAttribute(READY_FLAG, '1');
 
@@ -25,7 +27,7 @@
       return;
     }
 
-    const ctx = { track, gallery, slides, dots, preventClick:false, dragState:null };
+    const ctx = { track, gallery, slides, dots, prevBtn, nextBtn, preventClick:false, dragState:null, activeIndex:0 };
     contexts.add(ctx);
 
     let pointerActive = false;
@@ -92,6 +94,26 @@
       requestAnimationFrame(()=>updateDots(ctx));
     });
 
+    if(prevBtn){
+      prevBtn.addEventListener('click', event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        ctx.preventClick = true;
+        showPrevious(ctx);
+        setTimeout(()=>{ ctx.preventClick = false; }, 220);
+      });
+    }
+
+    if(nextBtn){
+      nextBtn.addEventListener('click', event=>{
+        event.preventDefault();
+        event.stopPropagation();
+        ctx.preventClick = true;
+        showNext(ctx);
+        setTimeout(()=>{ ctx.preventClick = false; }, 220);
+      });
+    }
+
     dots.forEach(dot=>{
       dot.addEventListener('click', (event)=>{
         event.preventDefault();
@@ -100,7 +122,7 @@
         const target = ctx.slides[index];
         if(target){
           ctx.preventClick = true;
-          track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+          scrollToIndex(ctx, index);
           setTimeout(()=>{ ctx.preventClick = false; }, 200);
         }
       });
@@ -130,10 +152,7 @@
 
     ctx.dragState = null;
 
-    const target = slides[targetIndex];
-    if(target){
-      track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
-    }
+    scrollToIndex(ctx, targetIndex);
   }
 
   function getCurrentIndex(ctx){
@@ -155,6 +174,40 @@
     dots.forEach((dot, i)=>{
       dot.classList.toggle(DOT_ACTIVE_CLASS, i === index);
     });
+    ctx.activeIndex = index;
+    updateControls(ctx);
+  }
+
+  function scrollToIndex(ctx, index){
+    const { slides, track } = ctx;
+    if(!slides.length) return;
+    const max = slides.length - 1;
+    const targetIndex = clampIndex(index, max);
+    const target = slides[targetIndex];
+    if(!target) return;
+    track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+  }
+
+  function showNext(ctx){
+    if(!ctx.slides.length) return;
+    const nextIndex = clampIndex(getCurrentIndex(ctx) + 1, ctx.slides.length - 1);
+    scrollToIndex(ctx, nextIndex);
+  }
+
+  function showPrevious(ctx){
+    if(!ctx.slides.length) return;
+    const prevIndex = clampIndex(getCurrentIndex(ctx) - 1, ctx.slides.length - 1);
+    scrollToIndex(ctx, prevIndex);
+  }
+
+  function updateControls(ctx){
+    const { prevBtn, nextBtn, slides, activeIndex } = ctx;
+    if(prevBtn){
+      prevBtn.disabled = !slides.length || activeIndex <= 0;
+    }
+    if(nextBtn){
+      nextBtn.disabled = !slides.length || activeIndex >= slides.length - 1;
+    }
   }
 
   function initializeProductGalleries(scope){

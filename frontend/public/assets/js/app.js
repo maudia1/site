@@ -655,6 +655,9 @@ function cardHTML(p){
         <div class="product-media-dots" role="tablist" aria-label="Galeria de imagens">
           ${slidesSource.map((_,index)=>`<button type="button" class="product-media-dot${index===0?' is-active':''}" data-gallery-dot="${index}" aria-label="Ver imagem ${index+1} de ${slidesSource.length} de ${escapeHtml(altBase)}"></button>`).join('')}
         </div>` : "";
+  const controlsHtml = slidesSource.length>1 ? `
+      <button class="product-media-control product-media-control--prev" type="button" data-gallery-prev aria-label="Ver imagem anterior de ${escapeHtml(altBase)}"><span aria-hidden="true">&#10094;</span></button>
+      <button class="product-media-control product-media-control--next" type="button" data-gallery-next aria-label="Ver próxima imagem de ${escapeHtml(altBase)}"><span aria-hidden="true">&#10095;</span></button>` : "";
   const primaryImage = slidesSource[0] || PLACEHOLDER_IMAGE;
   const payload = encodeCartPayload({
     id:p.id,
@@ -666,14 +669,17 @@ function cardHTML(p){
   });
   return `
   <article class="product-card">
-    <a class="product-media" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}" data-gallery>
-      <div class="product-media-track" data-gallery-track>
-        ${slidesHtml}
-      </div>
-      ${dotsHtml}
-      <span class="badge" ${hasOld?"":"hidden"}>- ${hasOld ? Math.round((1 - p.price/p.oldPrice)*100) : 0}%</span>
-      <span class="badge badge-black" ${isBlackFriday?"":"hidden"}>Black Friday</span>
-    </a>
+    <div class="product-media" data-gallery>
+      <a class="product-media-link" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}">
+        <div class="product-media-track" data-gallery-track>
+          ${slidesHtml}
+        </div>
+        ${dotsHtml}
+        <span class="badge" ${hasOld?"":"hidden"}>- ${hasOld ? Math.round((1 - p.price/p.oldPrice)*100) : 0}%</span>
+        <span class="badge badge-black" ${isBlackFriday?"":"hidden"}>Black Friday</span>
+      </a>
+      ${controlsHtml}
+    </div>
     <div class="product-body">
       <p class="product-brand">${brandLabel}</p>
       <h3 class="product-title">${escapeHtml(p.name)}</h3>
