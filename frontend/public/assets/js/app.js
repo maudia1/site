@@ -621,6 +621,9 @@ function render(){
   const items = getFiltered();
   countEl.textContent = `${items.length} produto${items.length===1?"":"s"} encontrados.`;
   grid.innerHTML = items.length ? items.map(cardHTML).join("") : `<div class="muted">Nada encontrado.</div>`;
+  if(window.initializeProductGalleries){
+    window.initializeProductGalleries(grid);
+  }
   updateWhatsAppLink();
 }
 
@@ -631,8 +634,8 @@ function cardHTML(p){
   const comboSavings = Number.isFinite(comboPrice) ? Math.max((priceNow*2) - comboPrice, 0) : 0;
   const hasCombo = Number.isFinite(comboPrice) && comboPrice > 0;
   const gallery = normalizeGallery(p.image, Array.isArray(p.images)?p.images:[]).slice(0,3);
-  const coverRaw = gallery[0] || p.image || PLACEHOLDER_IMAGE;
-  const cover = escapeHtml(coverRaw);
+  const slidesSource = (gallery.length ? gallery : [p.image || PLACEHOLDER_IMAGE]).filter(Boolean);
+  if(!slidesSource.length) slidesSource.push(PLACEHOLDER_IMAGE);
   const isBlackFriday = Boolean(p.isBlackFriday);
   const cb = isBlackFriday ? null : computeCashback(priceNow);
   const installment = computeInstallments(priceNow);
@@ -640,18 +643,34 @@ function cardHTML(p){
   const caseDeviceLabel = formatCaseDeviceLabel(caseDevices);
   const showCompatibility = caseDeviceLabel && String(p.category || "").toLowerCase() === "capas";
   const brandLabel = escapeHtml(formatBrand(p.brand));
+  const altBase = String(p.name || "Produto");
+  const slidesHtml = slidesSource.map((url,index)=>{
+    const altText = slidesSource.length>1 ? `${altBase} - imagem ${index+1}` : altBase;
+    return `
+        <div class="product-media-slide" data-gallery-slide="${index}">
+          <img src="${escapeHtml(url || PLACEHOLDER_IMAGE)}" alt="${escapeHtml(altText)}">
+        </div>`;
+  }).join("");
+  const dotsHtml = slidesSource.length>1 ? `
+        <div class="product-media-dots" role="tablist" aria-label="Galeria de imagens">
+          ${slidesSource.map((_,index)=>`<button type="button" class="product-media-dot${index===0?' is-active':''}" data-gallery-dot="${index}" aria-label="Ver imagem ${index+1} de ${slidesSource.length} de ${escapeHtml(altBase)}"></button>`).join('')}
+        </div>` : "";
+  const primaryImage = slidesSource[0] || PLACEHOLDER_IMAGE;
   const payload = encodeCartPayload({
     id:p.id,
     name:p.name,
     price:priceNow,
-    image:coverRaw,
+    image:primaryImage,
     url:`/produto/${encodeURIComponent(p.id)}`,
     priceTwo: Number.isFinite(comboPrice) && comboPrice>0 ? comboPrice : null
   });
   return `
   <article class="product-card">
-    <a class="product-media" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}">
-      <img src="${cover}" alt="${escapeHtml(p.name)}">
+    <a class="product-media" href="/produto/${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.name)}" data-gallery>
+      <div class="product-media-track" data-gallery-track>
+        ${slidesHtml}
+      </div>
+      ${dotsHtml}
       <span class="badge" ${hasOld?"":"hidden"}>- ${hasOld ? Math.round((1 - p.price/p.oldPrice)*100) : 0}%</span>
       <span class="badge badge-black" ${isBlackFriday?"":"hidden"}>Black Friday</span>
     </a>
