@@ -485,7 +485,7 @@ body.iw-modal-open{overflow:hidden}
 .product-media-dot.is-active{ background:#fff; transform:scale(1.2) }
 .product-media-dot:focus-visible{ outline:2px solid #fff; outline-offset:2px }
 .product-media .badge{ position:absolute; top:10px; left:10px; padding:5px 10px; font-size:.75rem; border-radius:999px; background:rgba(255,255,255,.85); color:#050505; font-weight:600 }
-.product-media .badge-black{ left:auto; right:10px; background:#111827; color:#f9fafb; box-shadow:0 6px 16px rgba(15,23,42,.25) }
+.product-media .badge-black{ left:auto; right:10px; background:#dc2626; color:#fef2f2; box-shadow:0 6px 16px rgba(220,38,38,.35) }
 
 /* Corpo */
 .product-body{ padding:14px; display:grid; gap:8px }
