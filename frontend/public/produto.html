@@ -67,7 +67,7 @@
           <span id="product-price" class="price-now">R$ 0,00</span>
           <span id="product-oldprice" class="price-old" hidden></span>
         </div>
-        <div id="product-bundle" class="product-bundle" hidden>
+        <div id="product-bundle" class="product-bundle" hidden role="button" tabindex="-1" aria-disabled="true" aria-describedby="product-bundle-price product-bundle-saving">
           <div class="bundle-banner">
             <span class="bundle-pill">Leve 2</span>
             <div class="bundle-copy">
@@ -78,13 +78,12 @@
         </div>
         <p id="product-installment" class="price-installment" hidden></p>
         <p id="product-description-short" class="product-summary muted" hidden></p>
-        <a class="btn btn-black-back" href="/black-friday">Voltar para Black Friday</a>
         <div id="product-tags" class="product-tags" hidden></div>
         <div class="product-actions">
           <a id="product-cta" class="btn btn-cta" href="#" target="_blank" rel="noopener">Comprar agora</a>
-          <button id="product-add-combo" class="btn btn-combo" type="button" hidden>Leve 2</button>
           <button id="product-add-cart" class="btn btn-ghost" type="button" data-add-to-cart>Adicionar ao carrinho</button>
         </div>
+        <a class="btn btn-black-back" href="/black-friday">Voltar para Black Friday</a>
       </article>
     </section>
 
@@ -182,7 +181,6 @@
   const thumbsEl = document.getElementById('product-thumbs');
   const ctaEl = document.getElementById('product-cta');
   const addCartBtn = document.getElementById('product-add-cart');
-  const addComboBtn = document.getElementById('product-add-combo');
   const crumb = document.getElementById('crumb-product');
   const lightbox = document.getElementById('product-lightbox');
   const lightboxImg = document.getElementById('product-lightbox-image');
@@ -227,24 +225,38 @@
     });
   }
 
-  if(addComboBtn){
-    addComboBtn.disabled = true;
-    addComboBtn.addEventListener('click', ()=>{
-      if(!currentProduct) return;
-      const price = Number(currentProduct.price);
-      if(!currentProduct.id || !currentProduct.name || !Number.isFinite(price)) return;
-      const image = currentProduct.image || (Array.isArray(currentProduct.images)&&currentProduct.images[0]) || '';
-      const comboPrice = normalizeComboPrice(currentProduct.priceTwo);
-      const payload = {
-        id: currentProduct.id,
-        name: currentProduct.name,
-        price,
-        image,
-        url: `/produto/${encodeURIComponent(currentProduct.id)}`,
-        priceTwo: comboPrice,
-        quantity: 2
-      };
-      window.dispatchEvent(new CustomEvent(CART_ADD_EVENT,{detail:payload}));
+  function addComboToCart(){
+    if(!currentProduct) return;
+    const price = Number(currentProduct.price);
+    if(!currentProduct.id || !currentProduct.name || !Number.isFinite(price)) return;
+    const comboPrice = normalizeComboPrice(currentProduct.priceTwo);
+    if(!Number.isFinite(comboPrice) || comboPrice <= 0) return;
+    const image = currentProduct.image || (Array.isArray(currentProduct.images)&&currentProduct.images[0]) || '';
+    const payload = {
+      id: currentProduct.id,
+      name: currentProduct.name,
+      price,
+      image,
+      url: `/produto/${encodeURIComponent(currentProduct.id)}`,
+      priceTwo: comboPrice,
+      quantity: 2
+    };
+    window.dispatchEvent(new CustomEvent(CART_ADD_EVENT,{detail:payload}));
+  }
+
+  if(bundleBox){
+    bundleBox.setAttribute('aria-disabled','true');
+    bundleBox.addEventListener('click', ()=>{
+      if(bundleBox.hidden || bundleBox.getAttribute('aria-disabled') === 'true') return;
+      addComboToCart();
+    });
+    bundleBox.addEventListener('keydown', event=>{
+      const key = event.key;
+      if(key === 'Enter' || key === ' ' || key === 'Spacebar' || key === 'Space'){
+        event.preventDefault();
+        if(bundleBox.hidden || bundleBox.getAttribute('aria-disabled') === 'true') return;
+        addComboToCart();
+      }
     });
   }
 
@@ -445,9 +457,16 @@
     if(addCartBtn){
       addCartBtn.disabled = false;
     }
-    if(addComboBtn){
-      addComboBtn.disabled = false;
-      addComboBtn.hidden = true;
+    if(bundleBox){
+      bundleBox.setAttribute('aria-disabled','true');
+      bundleBox.setAttribute('tabindex','-1');
+      bundleBox.hidden = true;
+    }
+    if(bundleSavingEl){
+      bundleSavingEl.textContent = '';
+    }
+    if(bundlePriceEl){
+      bundlePriceEl.textContent = '';
     }
 
     let shouldShowDetails = false;
@@ -473,13 +492,6 @@
 
     const comboPrice = readComboPrice(p);
     currentProduct.priceTwo = comboPrice ?? currentProduct.priceTwo ?? null;
-    if(addComboBtn){
-      if(Number.isFinite(comboPrice) && comboPrice>0){
-        addComboBtn.hidden = false;
-      }else{
-        addComboBtn.hidden = true;
-      }
-    }
     if(bundleBox && bundlePriceEl && bundleSavingEl){
       if(Number.isFinite(comboPrice) && comboPrice>0){
         const base = Number(p.price) || 0;
@@ -487,9 +499,19 @@
         bundlePriceEl.textContent = fmt(comboPrice);
         bundleSavingEl.textContent = comboSavings>0 ? `Economize ${fmt(comboSavings)}` : 'Dois por um preço especial';
         bundleBox.hidden = false;
+        bundleBox.setAttribute('aria-disabled','false');
+        bundleBox.setAttribute('tabindex','0');
+        const labelParts = [`Adicionar 2 unidades de ${p.name} ao carrinho`];
+        if(Number.isFinite(comboPrice)){
+          labelParts.push(`por ${fmt(comboPrice)}`);
+        }
+        bundleBox.setAttribute('aria-label', labelParts.join(' '));
       }else{
         bundleBox.hidden = true;
         bundleSavingEl.textContent = '';
+        bundleBox.setAttribute('aria-disabled','true');
+        bundleBox.setAttribute('tabindex','-1');
+        bundleBox.removeAttribute('aria-label');
       }
     }
 
