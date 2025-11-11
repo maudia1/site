@@ -184,7 +184,7 @@ function renderCard(p){
           <span class="price-old">${formatBRL(p.oldPrice)}</span>
         </div>`:''}
         <div class="product-price-line">
-          <span class="product-price-label">Preço:</span>
+          <span class="product-price-label">Por:</span>
           <span class="price-now">${formatBRL(priceNow)}</span>
         </div>
         ${hasCombo ? `
