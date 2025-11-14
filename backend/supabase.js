@@ -1,11 +1,28 @@
-import nodeFetch from "node-fetch";
-
 const noop = () => {};
 const defaultLogger = {
   info: noop,
   warn: noop,
   error: noop,
   log: noop
+};
+
+let cachedNodeFetch = null;
+let cachedNodeFetchPromise = null;
+
+const loadNodeFetch = async () => {
+  if (cachedNodeFetch) return cachedNodeFetch;
+  if (!cachedNodeFetchPromise) {
+    cachedNodeFetchPromise = import("node-fetch")
+      .then((mod) => {
+        cachedNodeFetch = mod?.default || mod;
+        return cachedNodeFetch;
+      })
+      .catch((err) => {
+        cachedNodeFetchPromise = null;
+        throw err;
+      });
+  }
+  return cachedNodeFetchPromise;
 };
 
 const parseContentRangeTotal = (header) => {
@@ -33,11 +50,16 @@ export function createSupabaseClient(options = {}) {
     ...(providedLogger || {})
   };
 
+  const defaultFetch = async (...args) => {
+    const nodeFetch = await loadNodeFetch();
+    return nodeFetch(...args);
+  };
+
   const fetchFn = typeof fetchImpl === "function"
     ? fetchImpl
     : typeof globalThis.fetch === "function"
       ? globalThis.fetch.bind(globalThis)
-      : nodeFetch;
+      : defaultFetch;
 
   const baseUrl = typeof url === "string" && url.trim()
     ? url.trim().replace(/\/$/, "")
