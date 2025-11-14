@@ -63,6 +63,32 @@
     }
   };
 
+  const SUPABASE_URL = 'https://ozulqzzgmglucoaqhlen.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dWxxenpnbWdsdWNvYXFobGVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxMjk3OTksImV4cCI6MjA3NTcwNTc5OX0.CM3s9KZ7ixCbLoVEIqoKd4A1u-kqPl3OwZ1lMxYW-RM';
+
+  const storePhoneOnSupabase = async (digits) => {
+    if (!digits) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/contador?on_conflict=numero`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Prefer: 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify([{ numero: digits }])
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.warn('[cashback] falha ao gravar telefone no Supabase', res.status, text);
+      }
+    } catch (err) {
+      console.warn('[cashback] erro ao gravar telefone no Supabase', err?.message || err);
+    }
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(overlay);
     document.body.appendChild(toast);
@@ -96,6 +122,7 @@
       try {
         setLoading(true);
 
+        storePhoneOnSupabase(digits);
         fetch('/api/visitors', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
