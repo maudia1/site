@@ -96,11 +96,18 @@
       try {
         setLoading(true);
 
-        fetch('/api/visitors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: digits })
-        }).catch((err) => console.warn('[cashback] falha ao registrar visitante', err));
+        try {
+          const visitorRes = await fetch('/api/visitors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: digits })
+          });
+          if (!visitorRes.ok) {
+            console.warn('[cashback] falha ao registrar visitante', visitorRes.status);
+          }
+        } catch (visitorErr) {
+          console.warn('[cashback] erro ao registrar visitante', visitorErr);
+        }
 
         const res = await fetch(`/api/cashback?phone=${encodeURIComponent(digits)}`);
         const data = await res.json().catch(() => ({}));
