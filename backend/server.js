@@ -353,6 +353,102 @@ async function supabaseEnsureVisitorRecord(phone) {
   }
 }
 
+const parseContentRangeTotal = (header) => {
+  if (!header || typeof header !== "string") return null;
+  const parts = header.split("/");
+  if (parts.length !== 2) return null;
+  const total = Number(parts[1]);
+  return Number.isFinite(total) ? total : null;
+};
+
+async function supabaseFetchVisitorSummary() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  const tableName = SUPABASE_VISITORS_TABLE?.trim();
+  if (!tableName) return null;
+
+  const base = SUPABASE_URL.replace(/\/$/, "");
+  const tablePath = encodeURIComponent(tableName);
+  const commonHeaders = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  };
+
+  let totalVisitors = null;
+  let totalVisits = null;
+  let recentVisitors = [];
+
+  try {
+    const statsUrl = new URL(`${base}/rest/v1/${tablePath}`);
+    statsUrl.searchParams.set("select", "visit_count");
+    statsUrl.searchParams.set("limit", "10000");
+
+    const statsRes = await fetch(statsUrl, {
+      headers: {
+        ...commonHeaders,
+        "Prefer": "count=exact"
+      }
+    });
+
+    if (statsRes.ok) {
+      const statsRows = await statsRes.json().catch(() => []);
+      if (Array.isArray(statsRows) && statsRows.length) {
+        totalVisits = statsRows.reduce((sum, row) => {
+          const val = Number(row?.visit_count ?? 0);
+          return Number.isFinite(val) ? sum + val : sum;
+        }, 0);
+      } else {
+        totalVisits = 0;
+      }
+      totalVisitors = parseContentRangeTotal(statsRes.headers.get("content-range"));
+      if (totalVisitors == null) {
+        totalVisitors = Array.isArray(statsRows) ? statsRows.length : 0;
+      }
+    } else {
+      const text = await statsRes.text().catch(() => "");
+      console.warn("[visitors] Supabase stats falhou", statsRes.status, text);
+    }
+  } catch (err) {
+    console.warn("[visitors] Supabase stats erro", err?.message || err);
+  }
+
+  try {
+    const listUrl = new URL(`${base}/rest/v1/${tablePath}`);
+    listUrl.searchParams.set("select", "numero,visit_count,last_visit,first_visit");
+    listUrl.searchParams.set("order", "last_visit.desc");
+    listUrl.searchParams.set("limit", "20");
+
+    const listRes = await fetch(listUrl, { headers: commonHeaders });
+    if (listRes.ok) {
+      const listRows = await listRes.json().catch(() => []);
+      if (Array.isArray(listRows)) {
+        recentVisitors = listRows.map((row) => ({
+          numero: row?.numero || null,
+          visitCount: Number(row?.visit_count ?? 0) || 0,
+          lastVisit: row?.last_visit || null,
+          firstVisit: row?.first_visit || null
+        }));
+      }
+    } else {
+      const text = await listRes.text().catch(() => "");
+      console.warn("[visitors] Supabase lista falhou", listRes.status, text);
+    }
+  } catch (err) {
+    console.warn("[visitors] Supabase lista erro", err?.message || err);
+  }
+
+  if (totalVisitors == null && totalVisits == null && recentVisitors.length === 0) {
+    return null;
+  }
+
+  return {
+    totalVisitors: totalVisitors ?? 0,
+    totalVisits: totalVisits ?? 0,
+    recentVisitors
+  };
+}
+
 async function supabaseUpsertProduct(p) {
   try {
     if (!SUPABASE_URL || !SUPABASE_KEY) return;
@@ -669,6 +765,19 @@ app.post("/api/visitors", async (req, res) => {
   } catch (err) {
     console.warn("[visitors] registro via API falhou", err?.message || err);
     return res.status(500).json({ error: "store_failed" });
+  }
+});
+
+app.get("/api/visitors/summary", requireAdmin, async (_req, res) => {
+  try {
+    const summary = await supabaseFetchVisitorSummary();
+    if (!summary) {
+      return res.status(503).json({ error: "supabase_unavailable" });
+    }
+    return res.json(summary);
+  } catch (err) {
+    console.warn("[visitors] resumo falhou", err?.message || err);
+    return res.status(500).json({ error: "summary_failed" });
   }
 });
 
