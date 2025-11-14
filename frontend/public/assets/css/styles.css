@@ -144,8 +144,10 @@ a:hover{opacity:.9}
 .black-list .muted{max-width:560px;text-align:center;margin:0 auto}
 
 .black-stores{padding:10px 0 40px;text-align:center}
-.black-stores-list{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;font-size:.8rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
-.black-stores-list li{white-space:nowrap}
+.black-stores-title{margin:0 0 18px;font-size:1rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#f1f5f9}
+.black-stores-list{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;justify-content:center;font-size:.8rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;gap:0}
+.black-stores-list li{position:relative;padding:0 clamp(18px,3vw,26px);white-space:nowrap;font-weight:600}
+.black-stores-list li+li::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:1px;height:22px;background:var(--border)}
 
 @media(min-width:720px){
   .mega-card{grid-template-columns:minmax(0,1fr) minmax(0,0.9fr);align-items:center;padding:36px 40px}
