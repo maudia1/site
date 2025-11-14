@@ -63,8 +63,9 @@ de RLS esperadas pela aplicacao.
    - `GET /` - landing page.  
    - `GET /catalogo` - listagem.  
    - `GET /produto/:id` - detalhe.  
-   - `GET /admin` - painel protegido por Basic Auth.  
+   - `GET /admin` - painel protegido por Basic Auth.
    - `POST /api/upload`, `POST/PUT/DELETE /api/products` - operacoes administradas (precisam de autenticacao).
+   - `GET /api/visitors/summary` - resumo de visitantes buscado na tabela Supabase configurada (requer autenticacao).
 
 ### Alternativa: usar proxy reverso
 
