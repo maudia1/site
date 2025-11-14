@@ -6,7 +6,7 @@
   const CASHBACK_RESULT_KEY = 'iw.cb.result.v1';
   const CASHBACK_EVENT = 'iw-cashback-update';
   const PLACEHOLDER_IMAGE = '/assets/img/product-placeholder.svg';
-  const CHECKOUT_WHATSAPP = '5561992074182';
+  const CHECKOUT_WHATSAPP = '61998348060';
   const COMBO_PROP_KEYS = ['priceTwo','comboPrice','bundlePrice','priceCombo','priceBundle','price_for_two','priceForTwo','leve2','leveDois','leve2Price'];
 
   let cart = [];
