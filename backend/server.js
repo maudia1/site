@@ -17,7 +17,7 @@ const ADMIN_PASS = process.env.ADMIN_PASS || "@Mine9273";
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://ozulqzzgmglucoaqhlen.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dWxxenpnbWdsdWNvYXFobGVuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDEyOTc5OSwiZXhwIjoyMDc1NzA1Nzk5fQ.Pu9RLn2R5nOuBV6202xdnpWJ_8rE8coMmTiPHQewKK8";
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || "products_sheet";
-const SUPABASE_VISITORS_TABLE = process.env.SUPABASE_VISITORS_TABLE || "entrou";
+const SUPABASE_VISITORS_TABLE = process.env.SUPABASE_VISITORS_TABLE || "contador";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "frontend", "public");
@@ -276,15 +276,19 @@ async function supabaseEnsureVisitorRecord(phone) {
       "Accept": "application/json"
     };
 
+    let existing = null;
+
     try {
       const checkUrl = new URL(`${base}/rest/v1/${tablePath}`);
-      checkUrl.searchParams.set("select", "numero");
+      checkUrl.searchParams.set("select", "id,numero,visit_count");
       checkUrl.searchParams.set("numero", `eq.${digits}`);
       checkUrl.searchParams.set("limit", "1");
       const checkRes = await fetch(checkUrl, { headers: commonHeaders });
       if (checkRes.ok) {
         const arr = await checkRes.json().catch(() => null);
-        if (Array.isArray(arr) && arr.length) return;
+        if (Array.isArray(arr) && arr.length) {
+          existing = arr[0];
+        }
       } else {
         console.warn("[visitors] Supabase check falhou", { status: checkRes.status });
       }
@@ -292,8 +296,41 @@ async function supabaseEnsureVisitorRecord(phone) {
       console.warn("[visitors] Supabase check erro", err?.message || err);
     }
 
+    const nowIso = new Date().toISOString();
+
+    if (existing) {
+      try {
+        const nextCount = Number(existing?.visit_count || 0) + 1;
+        const updateUrl = new URL(`${base}/rest/v1/${tablePath}`);
+        updateUrl.searchParams.set("numero", `eq.${digits}`);
+        const updateHeaders = {
+          ...commonHeaders,
+          "Prefer": "return=minimal"
+        };
+        const updateRes = await fetch(updateUrl, {
+          method: "PATCH",
+          headers: updateHeaders,
+          body: JSON.stringify({
+            visit_count: nextCount,
+            last_visit: nowIso
+          })
+        });
+        if (!updateRes.ok) {
+          const text = await updateRes.text().catch(() => "");
+          console.warn("[visitors] Supabase update falhou", updateRes.status, text);
+        }
+      } catch (err) {
+        console.warn("[visitors] Supabase update erro", err?.message || err);
+      }
+      return;
+    }
+
     try {
-      const payload = [{ numero: digits }];
+      const payload = [{
+        numero: digits,
+        visit_count: 1,
+        last_visit: nowIso
+      }];
       const insertUrl = `${base}/rest/v1/${tablePath}?on_conflict=numero`;
       const insertHeaders = {
         ...commonHeaders,
