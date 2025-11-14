@@ -31,10 +31,10 @@ O servidor sobe em `http://localhost:3000`. Ajuste as variaveis de ambiente conf
 | `SUPABASE_URL`        | URL do projeto Supabase (opcional)                                    | `https://ozulqzzgmglucoaqhlen.supabase.co` |
 | `SUPABASE_SERVICE_ROLE` / `SUPABASE_ANON_KEY` | Chaves Supabase usadas para sincronizar os produtos         | service role configurada |
 | `SUPABASE_TABLE`      | Nome da tabela Supabase usada na sincronizacao                        | `products_sheet`|
-| `SUPABASE_VISITORS_TABLE` | Tabela Supabase usada para registrar visitantes (coluna `numero`) | `entrou`        |
+| `SUPABASE_VISITORS_TABLE` | Tabela Supabase usada para registrar visitantes (coluna `numero`) | `contador`      |
 
 Para criar essa estrutura de controle de visitas no Supabase, execute o script em `backend/sql/create_visitors_table.sql`. Ele cria
-as tabelas `public.entrou` (dados agregados por visitante) e `public.entrou_logs` (historico detalhado), alem das politicas basicas
+as tabelas `public.contador` (dados agregados por visitante) e `public.contador_logs` (historico detalhado), alem das politicas basicas
 de RLS esperadas pela aplicacao.
 
 > Dica: crie um arquivo `.env` com esses campos (sem subir para o Git) e use `cross-var` ou similar se precisar carregar automaticamente.
