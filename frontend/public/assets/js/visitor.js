@@ -26,7 +26,7 @@
         <div class="error" id="iw-error" hidden></div>
         <div class="actions">
           <button class="btn btn-ghost" type="button" id="iw-cancel">Agora n&atilde;o</button>
-          <button class="btn btn-primary" type="button" id="iw-submit">Ver meu cashback</button>
+          <button class="btn btn-primary" type="button" id="iw-submit">Ver produtos</button>
         </div>
       </div>
     </div>`;
@@ -104,7 +104,7 @@
       btnSubmit.disabled = state;
       btnCancel.disabled = state;
       input.disabled = state;
-      btnSubmit.textContent = state ? 'Verificando...' : 'Ver meu cashback';
+      btnSubmit.textContent = state ? 'Verificando...' : 'Ver produtos';
     };
 
     const clean = (value) => String(value || '').replace(/\D/g, '');
