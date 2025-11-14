@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createSupabaseClient } from "./supabase.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -18,6 +19,21 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "https://ozulqzzgmglucoaqhlen.s
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dWxxenpnbWdsdWNvYXFobGVuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDEyOTc5OSwiZXhwIjoyMDc1NzA1Nzk5fQ.Pu9RLn2R5nOuBV6202xdnpWJ_8rE8coMmTiPHQewKK8";
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || "products_sheet";
 const SUPABASE_VISITORS_TABLE = process.env.SUPABASE_VISITORS_TABLE || "contador";
+
+const supabaseClient = createSupabaseClient({
+  url: SUPABASE_URL,
+  key: SUPABASE_KEY,
+  visitorsTable: SUPABASE_VISITORS_TABLE,
+  productsTable: SUPABASE_TABLE,
+  logger: console
+});
+
+const {
+  ensureVisitorRecord: supabaseEnsureVisitorRecord,
+  fetchVisitorSummary: supabaseFetchVisitorSummary,
+  upsertProduct: supabaseUpsertProduct,
+  deleteProduct: supabaseDeleteProduct
+} = supabaseClient;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "frontend", "public");
@@ -258,247 +274,6 @@ const isRowActive = (row) => {
   if (flag === null || flag === undefined) return true;
   return Number(flag) !== 0;
 };
-
-async function supabaseEnsureVisitorRecord(phone) {
-  try {
-    if (!SUPABASE_URL || !SUPABASE_KEY) return;
-    const digits = String(phone || "").replace(/\D/g, "");
-    if (!digits) return;
-    const tableName = SUPABASE_VISITORS_TABLE?.trim();
-    if (!tableName) return;
-
-    const base = SUPABASE_URL.replace(/\/$/, "");
-    const tablePath = encodeURIComponent(tableName);
-    const commonHeaders = {
-      "apikey": SUPABASE_KEY,
-      "Authorization": `Bearer ${SUPABASE_KEY}`,
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    };
-
-    let existing = null;
-
-    try {
-      const checkUrl = new URL(`${base}/rest/v1/${tablePath}`);
-      checkUrl.searchParams.set("select", "id,numero,visit_count");
-      checkUrl.searchParams.set("numero", `eq.${digits}`);
-      checkUrl.searchParams.set("limit", "1");
-      const checkRes = await fetch(checkUrl, { headers: commonHeaders });
-      if (checkRes.ok) {
-        const arr = await checkRes.json().catch(() => null);
-        if (Array.isArray(arr) && arr.length) {
-          existing = arr[0];
-        }
-      } else {
-        console.warn("[visitors] Supabase check falhou", { status: checkRes.status });
-      }
-    } catch (err) {
-      console.warn("[visitors] Supabase check erro", err?.message || err);
-    }
-
-    const nowIso = new Date().toISOString();
-
-    if (existing) {
-      try {
-        const nextCount = Number(existing?.visit_count || 0) + 1;
-        const updateUrl = new URL(`${base}/rest/v1/${tablePath}`);
-        updateUrl.searchParams.set("numero", `eq.${digits}`);
-        const updateHeaders = {
-          ...commonHeaders,
-          "Prefer": "return=minimal"
-        };
-        const updateRes = await fetch(updateUrl, {
-          method: "PATCH",
-          headers: updateHeaders,
-          body: JSON.stringify({
-            visit_count: nextCount,
-            last_visit: nowIso
-          })
-        });
-        if (!updateRes.ok) {
-          const text = await updateRes.text().catch(() => "");
-          console.warn("[visitors] Supabase update falhou", updateRes.status, text);
-        }
-      } catch (err) {
-        console.warn("[visitors] Supabase update erro", err?.message || err);
-      }
-      return;
-    }
-
-    try {
-      const payload = [{
-        numero: digits,
-        visit_count: 1,
-        last_visit: nowIso
-      }];
-      const insertUrl = `${base}/rest/v1/${tablePath}?on_conflict=numero`;
-      const insertHeaders = {
-        ...commonHeaders,
-        "Prefer": "resolution=merge-duplicates,return=minimal"
-      };
-      const insertRes = await fetch(insertUrl, {
-        method: "POST",
-        headers: insertHeaders,
-        body: JSON.stringify(payload)
-      });
-      if (!insertRes.ok) {
-        const text = await insertRes.text().catch(() => "");
-        console.warn("[visitors] Supabase insert falhou", insertRes.status, text);
-      }
-    } catch (err) {
-      console.warn("[visitors] Supabase insert erro", err?.message || err);
-    }
-  } catch (err) {
-    console.warn("[visitors] Registro erro", err?.message || err);
-  }
-}
-
-const parseContentRangeTotal = (header) => {
-  if (!header || typeof header !== "string") return null;
-  const parts = header.split("/");
-  if (parts.length !== 2) return null;
-  const total = Number(parts[1]);
-  return Number.isFinite(total) ? total : null;
-};
-
-async function supabaseFetchVisitorSummary() {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-  const tableName = SUPABASE_VISITORS_TABLE?.trim();
-  if (!tableName) return null;
-
-  const base = SUPABASE_URL.replace(/\/$/, "");
-  const tablePath = encodeURIComponent(tableName);
-  const commonHeaders = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": `Bearer ${SUPABASE_KEY}`,
-    "Content-Type": "application/json",
-    "Accept": "application/json"
-  };
-
-  let totalVisitors = null;
-  let totalVisits = null;
-  let recentVisitors = [];
-
-  try {
-    const statsUrl = new URL(`${base}/rest/v1/${tablePath}`);
-    statsUrl.searchParams.set("select", "visit_count");
-    statsUrl.searchParams.set("limit", "10000");
-
-    const statsRes = await fetch(statsUrl, {
-      headers: {
-        ...commonHeaders,
-        "Prefer": "count=exact"
-      }
-    });
-
-    if (statsRes.ok) {
-      const statsRows = await statsRes.json().catch(() => []);
-      if (Array.isArray(statsRows) && statsRows.length) {
-        totalVisits = statsRows.reduce((sum, row) => {
-          const val = Number(row?.visit_count ?? 0);
-          return Number.isFinite(val) ? sum + val : sum;
-        }, 0);
-      } else {
-        totalVisits = 0;
-      }
-      totalVisitors = parseContentRangeTotal(statsRes.headers.get("content-range"));
-      if (totalVisitors == null) {
-        totalVisitors = Array.isArray(statsRows) ? statsRows.length : 0;
-      }
-    } else {
-      const text = await statsRes.text().catch(() => "");
-      console.warn("[visitors] Supabase stats falhou", statsRes.status, text);
-    }
-  } catch (err) {
-    console.warn("[visitors] Supabase stats erro", err?.message || err);
-  }
-
-  try {
-    const listUrl = new URL(`${base}/rest/v1/${tablePath}`);
-    listUrl.searchParams.set("select", "numero,visit_count,last_visit,first_visit");
-    listUrl.searchParams.set("order", "last_visit.desc");
-    listUrl.searchParams.set("limit", "20");
-
-    const listRes = await fetch(listUrl, { headers: commonHeaders });
-    if (listRes.ok) {
-      const listRows = await listRes.json().catch(() => []);
-      if (Array.isArray(listRows)) {
-        recentVisitors = listRows.map((row) => ({
-          numero: row?.numero || null,
-          visitCount: Number(row?.visit_count ?? 0) || 0,
-          lastVisit: row?.last_visit || null,
-          firstVisit: row?.first_visit || null
-        }));
-      }
-    } else {
-      const text = await listRes.text().catch(() => "");
-      console.warn("[visitors] Supabase lista falhou", listRes.status, text);
-    }
-  } catch (err) {
-    console.warn("[visitors] Supabase lista erro", err?.message || err);
-  }
-
-  if (totalVisitors == null && totalVisits == null && recentVisitors.length === 0) {
-    return null;
-  }
-
-  return {
-    totalVisitors: totalVisitors ?? 0,
-    totalVisits: totalVisits ?? 0,
-    recentVisitors
-  };
-}
-
-async function supabaseUpsertProduct(p) {
-  try {
-    if (!SUPABASE_URL || !SUPABASE_KEY) return;
-    const row = {
-      id: p.id,
-      name: p.name,
-      category: p.category || null,
-      price: typeof p.price === "number" ? Number(p.price) : null,
-      oldPrice: p.oldPrice != null ? Number(p.oldPrice) : null,
-      priceTwo: p.priceTwo != null ? Number(p.priceTwo) : null,
-      image: p.image || null,
-      createdAt: p.createdAt || null
-    };
-    const res = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${encodeURIComponent(SUPABASE_TABLE)}?on_conflict=id`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
-        "Prefer": "resolution=merge-duplicates,return=representation"
-      },
-      body: JSON.stringify([row])
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(()=>"");
-      console.warn("Supabase upsert falhou:", res.status, text);
-    }
-  } catch (e) {
-    console.warn("Supabase upsert erro:", e?.message || e);
-  }
-}
-
-async function supabaseDeleteProduct(id) {
-  try {
-    if (!SUPABASE_URL || !SUPABASE_KEY) return;
-    const res = await fetch(`${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${encodeURIComponent(SUPABASE_TABLE)}?id=eq.${encodeURIComponent(id)}`, {
-      method: "DELETE",
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`
-      }
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(()=>"");
-      console.warn("Supabase delete falhou:", res.status, text);
-    }
-  } catch (e) {
-    console.warn("Supabase delete erro:", e?.message || e);
-  }
-}
 
 /* LISTAR */
 app.get("/api/products", (req, res) => {
