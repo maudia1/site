@@ -33,6 +33,10 @@ O servidor sobe em `http://localhost:3000`. Ajuste as variaveis de ambiente conf
 | `SUPABASE_TABLE`      | Nome da tabela Supabase usada na sincronizacao                        | `products_sheet`|
 | `SUPABASE_VISITORS_TABLE` | Tabela Supabase usada para registrar visitantes (coluna `numero`) | `entrou`        |
 
+Para criar essa estrutura de controle de visitas no Supabase, execute o script em `backend/sql/create_visitors_table.sql`. Ele cria
+as tabelas `public.entrou` (dados agregados por visitante) e `public.entrou_logs` (historico detalhado), alem das politicas basicas
+de RLS esperadas pela aplicacao.
+
 > Dica: crie um arquivo `.env` com esses campos (sem subir para o Git) e use `cross-var` ou similar se precisar carregar automaticamente.
 
 ## Guia de deploy na Hostinger (Node.js)
