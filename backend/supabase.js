@@ -1,3 +1,5 @@
+import nodeFetch from "node-fetch";
+
 const noop = () => {};
 const defaultLogger = {
   info: noop,
@@ -35,7 +37,7 @@ export function createSupabaseClient(options = {}) {
     ? fetchImpl
     : typeof globalThis.fetch === "function"
       ? globalThis.fetch.bind(globalThis)
-      : null;
+      : nodeFetch;
 
   const baseUrl = typeof url === "string" && url.trim()
     ? url.trim().replace(/\/$/, "")
