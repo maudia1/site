@@ -6,14 +6,12 @@
   if (typeof window === 'undefined') return;
   if (localStorage.getItem(STORAGE_KEY)) return;
 
-  const LOGO_SRC = '/assets/img/apple-logo.jpg';
-
   const overlay = document.createElement('div');
   overlay.className = 'iw-modal-overlay';
   overlay.innerHTML = `
     <div class="iw-modal" role="dialog" aria-modal="true" aria-labelledby="iw-modal-title">
       <header>
-        <h3 id="iw-modal-title"><img class="modal-logo" src="${LOGO_SRC}" alt="" aria-hidden="true"/>Confirme seu n&uacute;mero</h3>
+        <h3 id="iw-modal-title">iWanted - Acess&oacute;rios Premium &middot; Confirme seu n&uacute;mero</h3>
         <button class="close" type="button" aria-label="Fechar">Fechar</button>
       </header>
       <div class="body">

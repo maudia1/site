@@ -42,10 +42,12 @@ a:hover{opacity:.9}
 .iw-header{position:sticky;top:0;z-index:60;background:rgba(5,4,9,.86);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06)}
 .iw-header .iw-container{display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:var(--header-height);padding:6px clamp(16px,4vw,32px)}
 .brand{display:inline-flex;align-items:center;padding:4px 0;text-decoration:none;flex-shrink:0;gap:10px}
-.brand-logo{width:30px;height:30px;object-fit:contain;filter:brightness(1.1);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
-.brand-logo--small{width:22px;height:22px;box-shadow:0 4px 10px rgba(0,0,0,.35)}
-.brand-text{font-size:clamp(1.7rem,2vw+1rem,2.6rem);font-weight:800;letter-spacing:-.04em;line-height:1;color:#fff;display:inline-flex;align-items:center}
-.brand-text--footer{font-size:clamp(1.3rem,1.2vw+0.8rem,1.8rem)}
+.brand-text{display:flex;align-items:baseline;gap:10px;font-size:clamp(1.7rem,2vw+1rem,2.6rem);color:#fff;letter-spacing:-.04em;font-weight:800;line-height:1}
+.brand-name{font-weight:800}
+.brand-divider{font-weight:600;color:rgba(255,255,255,.82)}
+.brand-tagline{font-weight:500;font-size:clamp(1.1rem,1vw+0.7rem,1.6rem);color:rgba(255,255,255,.85);letter-spacing:-.02em}
+.brand-text--footer{font-size:clamp(1.3rem,1.2vw+0.8rem,1.8rem);gap:6px}
+.brand-text--footer .brand-tagline{font-size:clamp(1rem,1vw+0.6rem,1.4rem)}
 .nav-shell{margin-left:auto;display:flex;align-items:center;gap:18px}
 .nav{display:flex;gap:4px;align-items:center}
 .nav a{padding:10px 14px;border-radius:12px;font-weight:500;color:var(--txt);transition:color .2s ease,background .2s ease}
@@ -411,7 +413,6 @@ a:hover{opacity:.9}
 .iw-modal{width:min(520px,92vw);border-radius:16px;border:1px solid rgba(255,255,255,.14);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));box-shadow:0 30px 80px rgba(0,0,0,.55);padding:18px}
 .iw-modal header{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .iw-modal h3{margin:0;font-size:1.2rem;display:flex;align-items:center;gap:10px}
-.modal-logo{width:28px;height:28px;object-fit:contain;filter:brightness(1.1);border-radius:6px;box-shadow:0 8px 18px rgba(0,0,0,.45)}
 .iw-modal .close{background:transparent;border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:10px;height:36px;padding:0 10px;cursor:pointer}
 .iw-modal .body{display:grid;gap:12px;margin-top:12px}
 .iw-modal .row{display:grid;gap:6px}
