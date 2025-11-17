@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   const STORAGE_KEY = 'iw.cb.checked.v1';
   const RESULT_KEY = 'iw.cb.result.v1';
   const EVENT_NAME = 'iw-cashback-update';
@@ -6,7 +6,6 @@
   if (typeof window === 'undefined') return;
   if (localStorage.getItem(STORAGE_KEY)) return;
 
-  const fmtBRL = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const LOGO_SRC = '/assets/img/apple-logo.jpg';
 
   const overlay = document.createElement('div');
@@ -18,7 +17,7 @@
         <button class="close" type="button" aria-label="Fechar">Fechar</button>
       </header>
       <div class="body">
-        <p class="hint">Confirme seu n&uacute;mero para verificar o tamanho da sua vantagem.</p>
+        <p class="hint">Confirme seu n&uacute;mero para continuar direto para as ofertas Black Friday.</p>
         <div class="row">
           <label for="iw-phone">Telefone (apenas n&uacute;meros)</label>
           <input id="iw-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="DDD + n&uacute;mero" maxlength="16" />
@@ -45,14 +44,6 @@
     localStorage.setItem(STORAGE_KEY, String(Date.now()));
     hide();
     setTimeout(() => overlay.remove(), 150);
-  };
-
-  const toast = document.createElement('div');
-  toast.className = 'iw-toast';
-  const showToast = (html) => {
-    toast.innerHTML = html;
-    toast.classList.add('is-show');
-    setTimeout(() => toast.classList.remove('is-show'), 8000);
   };
 
   const broadcast = (payload) => {
@@ -91,7 +82,6 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(overlay);
-    document.body.appendChild(toast);
     show();
 
     const btnClose = overlay.querySelector('.close');
@@ -104,7 +94,7 @@
       btnSubmit.disabled = state;
       btnCancel.disabled = state;
       input.disabled = state;
-      btnSubmit.textContent = state ? 'Verificando...' : 'Ver produtos';
+      btnSubmit.textContent = state ? 'Carregando...' : 'Ver produtos';
     };
 
     const clean = (value) => String(value || '').replace(/\D/g, '');
@@ -114,7 +104,7 @@
       errEl.textContent = '';
       const digits = clean(input.value);
       if (digits.length < 10) {
-        errEl.textContent = 'Digite um n\u00famero v\u00e1lido (com DDD).';
+        errEl.textContent = 'Digite um número válido (com DDD).';
         errEl.hidden = false;
         return;
       }
@@ -129,20 +119,12 @@
           body: JSON.stringify({ phone: digits })
         }).catch((err) => console.warn('[cashback] falha ao registrar visitante', err));
 
-        const res = await fetch(`/api/cashback?phone=${encodeURIComponent(digits)}`);
-        const data = await res.json().catch(() => ({}));
-        localStorage.setItem(RESULT_KEY, JSON.stringify({ phone: digits, data }));
-        broadcast({ phone: digits, data });
+        localStorage.setItem(RESULT_KEY, JSON.stringify({ phone: digits, data: null }));
+        broadcast({ phone: digits, data: null });
         close();
-        if (data && data.found && data.name) {
-          const valor = Number(data.cashback || 0);
-          const nome = String(data.name).split(' ')[0];
-          showToast(`<strong>${nome},</strong> voc&ecirc; tem <strong>${fmtBRL(valor)}</strong> de cashback para gastar em nosso site! <div class="muted">Aproveite nas pr&oacute;ximas compras.</div>`);
-        } else {
-          showToast(`<strong>N&atilde;o encontramos sua vantagem.</strong><div class="muted">Se acha que &eacute; um engano, fale com a gente no WhatsApp.</div>`);
-        }
+        window.location.href = '/black-friday';
       } catch (err) {
-        errEl.textContent = 'N\u00e3o foi poss\u00edvel verificar agora. Tente novamente mais tarde.';
+        errEl.textContent = 'Não foi possível verificar agora. Tente novamente mais tarde.';
         errEl.hidden = false;
       } finally {
         setLoading(false);
