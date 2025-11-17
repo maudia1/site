@@ -124,27 +124,19 @@ a:hover{opacity:.9}
 .black-page{background:radial-gradient(circle at top,rgba(15,23,42,.8),rgba(2,6,23,.96))}
 .black-hero{position:relative;padding:90px 0 50px;text-align:center;background:radial-gradient(circle at 45% -20%,rgba(250,204,21,.16),transparent 62%),radial-gradient(circle at 50% 120%,rgba(56,189,248,.08),transparent 68%)}
 .black-hero .iw-container{display:flex;justify-content:center}
-.black-hero-shell{display:flex;flex-direction:column;align-items:center;gap:clamp(22px,6vw,42px);width:100%}
-.black-hero-title{margin:0;font-size:clamp(1rem,5vw,2.4rem);font-weight:800;letter-spacing:-.03em;color:#f8fafc;text-shadow:0 10px 36px rgba(8,11,33,.65);white-space:nowrap}
-.black-hero-media{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;border-radius:38px;overflow:hidden;width:min(760px,100%);max-height:clamp(260px,55vw,520px);box-shadow:0 44px 120px rgba(15,15,38,.68)}
-.black-hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,9,18,.15),rgba(9,12,30,.65));z-index:0}
-.black-hero-photo{display:block;width:100%;height:auto;max-height:inherit;object-fit:cover;min-height:0;filter:saturate(1.06) contrast(1.02)}
-.black-hero-banner{background:linear-gradient(135deg,rgba(15,23,42,.9),rgba(12,10,24,.86));border:1px solid rgba(255,255,255,.16);box-shadow:0 40px 90px rgba(0,0,0,.58);padding:clamp(40px,10vw,90px) clamp(28px,8vw,60px);max-height:unset}
-.black-hero-banner::after{display:none}
-.black-hero-banner-text{position:relative;z-index:1;font-size:clamp(2.4rem,6vw,4rem);font-weight:900;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(120deg,#facc15,#fb7185,#22d3ee);background-size:180% 180%;-webkit-background-clip:text;color:transparent;text-shadow:0 18px 36px rgba(0,0,0,.55);animation:black-glow 8s ease-in-out infinite}
+.black-hero-shell{display:flex;justify-content:center;width:100%}
+.black-hero-highlight{position:relative;display:grid;gap:14px;justify-items:center;width:min(880px,100%);padding:clamp(40px,8vw,68px) clamp(28px,7vw,56px);border-radius:38px;background:linear-gradient(150deg,rgba(12,14,26,.94),rgba(7,8,18,.9));border:1px solid rgba(255,255,255,.14);box-shadow:0 40px 110px rgba(0,0,0,.62),0 0 0 1px rgba(255,255,255,.04) inset;overflow:hidden}
+.black-hero-highlight::before{content:"";position:absolute;inset:-30% -10% auto -10%;height:60%;background:radial-gradient(circle at 50% 50%,rgba(250,204,21,.22),rgba(250,204,21,0));filter:blur(18px);opacity:.75;z-index:0}
+.black-hero-highlight::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(59,130,246,.12),rgba(236,72,153,.1),rgba(250,204,21,.08));opacity:.8;mix-blend-mode:screen;z-index:0}
+.black-hero-pill{position:relative;z-index:1;display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border-radius:999px;background:linear-gradient(120deg,#facc15,#fb7185,#22d3ee);color:#05060c;font-size:.82rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;box-shadow:0 22px 46px rgba(0,0,0,.45);text-shadow:none}
+.black-hero-pill::before{content:"●";font-size:.9em}
+.black-hero-title{position:relative;z-index:1;margin:0;font-size:clamp(2.4rem,6vw,3.9rem);font-weight:900;letter-spacing:-.02em;color:#f8fafc;text-shadow:0 18px 46px rgba(0,0,0,.62);max-width:18ch;line-height:1.08}
+.black-hero-subtitle{position:relative;z-index:1;margin:0;font-size:1.05rem;color:#d7dfee;max-width:46ch;line-height:1.6}
 
-@keyframes black-glow{
-  0%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-  100%{background-position:0% 50%}
-}
-
-@media(max-width:768px){
-  .black-hero-title{font-size:clamp(1rem,6vw,2rem)}
-}
-
-@media(max-width:480px){
-  .black-hero-title{font-size:clamp(.95rem,7vw,1.6rem);letter-spacing:-.04em}
+@media(max-width:600px){
+  .black-hero-highlight{padding:32px 22px;gap:12px}
+  .black-hero-title{font-size:clamp(2rem,8vw,3rem)}
+  .black-hero-subtitle{font-size:1rem}
 }
 .black-list{padding:60px 0 90px}
 .black-list-head{display:grid;gap:10px;justify-items:center;text-align:center;margin-bottom:26px}
