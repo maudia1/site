@@ -1,10 +1,9 @@
 (() => {
-  const STORAGE_KEY = 'iw.cb.checked.v1';
   const RESULT_KEY = 'iw.cb.result.v1';
   const EVENT_NAME = 'iw-cashback-update';
 
   if (typeof window === 'undefined') return;
-  if (localStorage.getItem(STORAGE_KEY)) return;
+  if (localStorage.getItem(RESULT_KEY)) return;
 
   const overlay = document.createElement('div');
   overlay.className = 'iw-modal-overlay';
@@ -12,7 +11,6 @@
     <div class="iw-modal" role="dialog" aria-modal="true" aria-labelledby="iw-modal-title">
       <header>
         <h3 id="iw-modal-title">iWanted - Acess&oacute;rios Premium &middot; Confirme seu n&uacute;mero</h3>
-        <button class="close" type="button" aria-label="Fechar">Fechar</button>
       </header>
       <div class="body">
         <p class="hint">Confirme seu n&uacute;mero para continuar direto para as ofertas Black Friday.</p>
@@ -22,8 +20,7 @@
         </div>
         <div class="error" id="iw-error" hidden></div>
         <div class="actions">
-          <button class="btn btn-ghost" type="button" id="iw-cancel">Agora n&atilde;o</button>
-          <button class="btn btn-primary" type="button" id="iw-submit">Ver produtos</button>
+          <button class="btn btn-primary" type="button" id="iw-submit">Ver ofertas da Black</button>
         </div>
       </div>
     </div>`;
@@ -39,7 +36,6 @@
   };
 
   const close = () => {
-    localStorage.setItem(STORAGE_KEY, String(Date.now()));
     hide();
     setTimeout(() => overlay.remove(), 150);
   };
@@ -82,17 +78,14 @@
     document.body.appendChild(overlay);
     show();
 
-    const btnClose = overlay.querySelector('.close');
-    const btnCancel = overlay.querySelector('#iw-cancel');
     const btnSubmit = overlay.querySelector('#iw-submit');
     const input = overlay.querySelector('#iw-phone');
     const errEl = overlay.querySelector('#iw-error');
 
     const setLoading = (state) => {
       btnSubmit.disabled = state;
-      btnCancel.disabled = state;
       input.disabled = state;
-      btnSubmit.textContent = state ? 'Carregando...' : 'Ver produtos';
+      btnSubmit.textContent = state ? 'Carregando...' : 'Ver ofertas da Black';
     };
 
     const clean = (value) => String(value || '').replace(/\D/g, '');
@@ -129,8 +122,6 @@
       }
     };
 
-    btnClose.addEventListener('click', close);
-    btnCancel.addEventListener('click', close);
     btnSubmit.addEventListener('click', onSubmit);
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
