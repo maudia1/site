@@ -398,7 +398,7 @@ if(catSections.length && catChips.length){
           </div>
           ${dotsHtml}
           <span class="badge" ${hasOld?'':'hidden'}>- ${pct}%</span>
-          <span class="badge badge-black" ${isBlackFriday?'':'hidden'}>Black Friday</span>
+          <span class="badge badge-black" ${isBlackFriday?'':'hidden'}>Promoção de Janeiro</span>
         </a>
         ${controlsHtml}
       </div>
