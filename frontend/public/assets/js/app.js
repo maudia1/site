@@ -676,7 +676,7 @@ function cardHTML(p){
         </div>
         ${dotsHtml}
         <span class="badge" ${hasOld?"":"hidden"}>- ${hasOld ? Math.round((1 - p.price/p.oldPrice)*100) : 0}%</span>
-        <span class="badge badge-black" ${isBlackFriday?"":"hidden"}>Black Friday</span>
+        <span class="badge badge-black" ${isBlackFriday?"":"hidden"}>Promoção de Janeiro</span>
       </a>
       ${controlsHtml}
     </div>
