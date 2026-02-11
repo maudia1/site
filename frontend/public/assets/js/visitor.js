@@ -13,14 +13,14 @@
         <h3 id="iw-modal-title">iWanted - Acess&oacute;rios Premium &middot; Confirme seu n&uacute;mero</h3>
       </header>
       <div class="body">
-        <p class="hint">Confirme seu n&uacute;mero para continuar direto para as ofertas da Promoção de Janeiro.</p>
+        <p class="hint">Confirme seu n&uacute;mero para continuar direto para os produtos.</p>
         <div class="row">
           <label for="iw-phone">Telefone (apenas n&uacute;meros)</label>
           <input id="iw-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="DDD + n&uacute;mero" maxlength="16" />
         </div>
         <div class="error" id="iw-error" hidden></div>
         <div class="actions">
-          <button class="btn btn-primary" type="button" id="iw-submit">Ver ofertas da Promoção de Janeiro</button>
+          <button class="btn btn-primary" type="button" id="iw-submit">Ver produtos</button>
         </div>
       </div>
     </div>`;
@@ -85,7 +85,7 @@
     const setLoading = (state) => {
       btnSubmit.disabled = state;
       input.disabled = state;
-      btnSubmit.textContent = state ? 'Carregando...' : 'Ver ofertas da Promoção de Janeiro';
+      btnSubmit.textContent = state ? 'Carregando...' : 'Ver produtos';
     };
 
     const clean = (value) => String(value || '').replace(/\D/g, '');
