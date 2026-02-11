@@ -20,7 +20,7 @@
       <nav id="primary-nav" class="nav" data-nav-menu aria-label="Navega&ccedil;&atilde;o principal">
         <a href="/">In&iacute;cio</a>
         <a href="/catalogo">Produtos</a>
-        <a href="/black-friday">Promoção de Janeiro</a>
+        <a href="/black-friday">Ofertas especiais</a>
         <a href="/#contato">Contato</a>
       </nav>
       <div class="nav-utilities">
@@ -86,7 +86,7 @@
           <a id="product-cta" class="btn btn-cta" href="#" target="_blank" rel="noopener">Comprar agora</a>
           <button id="product-add-cart" class="btn btn-ghost" type="button" data-add-to-cart>Adicionar ao carrinho</button>
         </div>
-        <a class="btn btn-black-back" href="/black-friday">Voltar para Promoção de Janeiro</a>
+        <a class="btn btn-black-back" href="/black-friday">Voltar para as ofertas especiais</a>
       </article>
     </section>
 
@@ -110,9 +110,9 @@
   <div class="iw-container">
     <div class="product-related-head">
       <div class="product-related-copy">
-        <span class="pill pill-contrast" aria-hidden="true">Promoção de Janeiro</span>
-        <h2 id="product-related-title" class="section-title">Outras ofertas da Promoção de Janeiro</h2>
-        <p class="muted">Selecionamos mais algumas ofertas da Promoção de Janeiro para você aproveitar sem sair desta página.</p>
+        <span class="pill pill-contrast" aria-hidden="true">Ofertas especiais</span>
+        <h2 id="product-related-title" class="section-title">Outras ofertas da loja</h2>
+        <p class="muted">Selecionamos mais algumas ofertas da loja para você aproveitar sem sair desta página.</p>
       </div>
     </div>
     <div class="product-related-carousel" data-related-carousel hidden>
@@ -124,7 +124,7 @@
         <span aria-hidden="true">&#10095;</span>
       </button>
     </div>
-    <p id="product-related-empty" class="product-related-empty muted small" hidden>Nenhuma outra oferta da Promoção de Janeiro disponível no momento.</p>
+    <p id="product-related-empty" class="product-related-empty muted small" hidden>Nenhuma outra oferta disponível no momento.</p>
   </div>
 </section>
 
@@ -679,7 +679,7 @@
       relatedRenderedFor = excludeId;
       renderRelated(normalized);
     }catch(err){
-      console.error('Falha ao carregar ofertas da Promoção de Janeiro relacionadas', err);
+      console.error('Falha ao carregar ofertas relacionadas', err);
       renderRelated([]);
     }
   }
@@ -733,7 +733,7 @@
     }
     if(relatedEmpty){
       relatedEmpty.hidden = false;
-      relatedEmpty.textContent = 'Carregando ofertas da Promoção de Janeiro...';
+      relatedEmpty.textContent = 'Carregando ofertas...';
     }
     if(relatedTrack){
       relatedTrack.innerHTML = '';
@@ -752,7 +752,7 @@
     if(relatedEmpty){
       relatedEmpty.hidden = hasItems;
       if(!hasItems){
-        relatedEmpty.textContent = 'Nenhuma outra oferta da Promoção de Janeiro disponível no momento.';
+        relatedEmpty.textContent = 'Nenhuma outra oferta disponível no momento.';
       }
     }
     if(!hasItems){
@@ -781,7 +781,7 @@
           <div class="product-related-body">
             <h3 class="product-related-title">${escapeHtml(product.name)}</h3>
             <span class="product-related-price">${fmt(product.price)}</span>
-            <span class="product-related-cta">Ver oferta</span>
+            <span class="product-related-cta">Ver produto</span>
           </div>
         </a>
       </article>`;

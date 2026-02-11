@@ -137,7 +137,7 @@
     <div class="nav-shell">
       <nav id="primary-nav" class="nav" data-nav-menu aria-label="Navega&ccedil;&atilde;o principal">
         <a href="/catalogo">Cat&aacute;logo</a>
-        <a href="/black-friday">Promoção de Janeiro</a>
+        <a href="/black-friday">Ofertas especiais</a>
       </nav>
       <div class="nav-utilities">
         <div class="nav-actions" hidden></div>
@@ -211,8 +211,8 @@
 
           <div class="row row-single">
             <div class="stack stack-checkbox">
-              <label for="blackFriday"><input type="checkbox" id="blackFriday"/> Incluir na vitrine Promoção de Janeiro</label>
-              <small>Marque para que o produto apareça na página especial de ofertas da Promoção de Janeiro.</small>
+              <label for="blackFriday"><input type="checkbox" id="blackFriday"/> Incluir na vitrine Ofertas especiais</label>
+              <small>Marque para que o produto apareça na página especial de ofertas.</small>
             </div>
           </div>
 
@@ -910,7 +910,7 @@ async function list(){
           const comboHtml=hasCombo?`<p class="product-price--combo">Leve 2 por ${fmt(comboValue)}${comboSavings>0?` <span class="combo-saving">Economize ${fmt(comboSavings)}</span>`:""}</p>`:"";
           const offline=p.isActive===false;
           const statusBadge=offline?'<span class="product-status product-status--offline">Offline</span>':'';
-          const blackBadge=p.isBlackFriday?'<span class="product-status product-status--black">Promoção de Janeiro</span>':'';
+          const blackBadge=p.isBlackFriday?'<span class="product-status product-status--black">Ofertas especiais</span>':'';
           const badgeGroup=[statusBadge,blackBadge].filter(Boolean).join('');
           const toggleLabel=offline?"Colocar no catálogo":"Tirar do catálogo";
           return `
@@ -1225,7 +1225,7 @@ function renderServerSnapshot(){
       log.textContent=list.map(p=>{
         const statusParts=[];
         if(p.isActive===false) statusParts.push("offline");
-        if(p.isBlackFriday) statusParts.push("Promoção de Janeiro");
+        if(p.isBlackFriday) statusParts.push("Ofertas especiais");
         const statusText=statusParts.length?` (${statusParts.join(', ')})`:"";
         return `• ${p.name} — ${p.brand||'Sem marca'} — ${p.category||'Sem categoria'} — ${maybeFmt(p.price)}${statusText}`;
       }).join("\n");

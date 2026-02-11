@@ -49,7 +49,7 @@ async function init(){
     products = data;
     fetchError = false;
   }catch(err){
-    console.error('Falha ao carregar produtos da Promoção de Janeiro', err);
+    console.error('Falha ao carregar produtos das ofertas especiais', err);
     products = [];
     fetchError = true;
   }
@@ -64,7 +64,7 @@ function render(){
     els.empty.hidden = true;
     els.count.textContent = products.length === 1
       ? '1 oferta especial disponível agora.'
-      : `${products.length} ofertas especiais preparadas para a Promoção de Janeiro.`;
+      : `${products.length} produtos em destaque disponíveis agora.`;
     if(window.initializeProductGalleries){
       window.initializeProductGalleries(els.grid);
     }
@@ -73,8 +73,8 @@ function render(){
     els.grid.innerHTML = '';
     els.count.textContent = '';
     els.empty.textContent = fetchError
-      ? 'Não foi possível carregar as ofertas da Promoção de Janeiro. Tente novamente em instantes.'
-      : 'Nenhum produto marcado como Promoção de Janeiro ainda.';
+      ? 'Não foi possível carregar os produtos em destaque. Tente novamente em instantes.'
+      : 'Nenhum produto marcado como oferta especial ainda.';
     els.empty.hidden = false;
   }
 }
@@ -176,7 +176,7 @@ function renderCard(p){
         </div>
         ${dotsHtml}
         <span class="badge" ${pct?'':'hidden'}>- ${pct}%</span>
-        <span class="badge badge-black" ${isBlackFriday?'':'hidden'}>Promoção de Janeiro</span>
+        <span class="badge badge-black" ${isBlackFriday?'':'hidden'}>Ofertas especiais</span>
       </a>
       ${controlsHtml}
     </div>
